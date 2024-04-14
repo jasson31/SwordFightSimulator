@@ -56,7 +56,10 @@ protected:
 
 	float HealthPoint = 0.0f;
 	float MaxHealthPoint = 100.0f;
-
+	FVector RightHandLocation;
+	FVector LeftHandLocation;
+	bool bIsAttacking = false;
+	ASword* MySword;
 
 public:
 	// Called every frame
@@ -69,4 +72,11 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void GetHealthInformation(float& OutCurrentHealthPoint, float& OutMaxHealthPoint) { OutCurrentHealthPoint = HealthPoint; OutMaxHealthPoint = MaxHealthPoint; }
+
+	UFUNCTION(BlueprintCallable)
+	FVector GetRightHandLocation() const { return RightHandLocation; }
+	UFUNCTION(BlueprintCallable)
+	FVector GetLeftHandLocation();
+	UFUNCTION(BlueprintCallable)
+	bool GetbIsAttacking() const { return bIsAttacking; }
 };

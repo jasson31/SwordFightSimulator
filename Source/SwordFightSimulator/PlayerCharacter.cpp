@@ -28,14 +28,14 @@ void APlayerCharacter::BeginPlay()
 	SpawnParameters.Owner = this;
 	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-	ASword* NewSword = GetWorld()->SpawnActor<ASword>(SwordBlueprint, SpawnParameters);
+	MySword = GetWorld()->SpawnActor<ASword>(SwordBlueprint, SpawnParameters);
 
-	if (NewSword == nullptr)
+	if (MySword == nullptr)
 	{
 		return;
 	}
 
-	NewSword->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, "Grip Point Socket");
+	MySword->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, "Grip Point Socket");
 
 	SetHealthPoint(MaxHealthPoint);
 }
@@ -75,6 +75,8 @@ void APlayerCharacter::StartAttackMode(const FInputActionValue& Value)
 			SubSystem->AddMappingContext(AttackMappingContext, 1);
 		}
 	}
+
+	bIsAttacking = true;
 }
 
 void APlayerCharacter::StopAttackMode(const FInputActionValue& Value)
@@ -86,11 +88,25 @@ void APlayerCharacter::StopAttackMode(const FInputActionValue& Value)
 			SubSystem->RemoveMappingContext(AttackMappingContext);
 		}
 	}
+
+	bIsAttacking = false;
 }
 
 void APlayerCharacter::Attack(const FInputActionValue& Value)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Attack"));
+	//UE_LOG(LogTemp, Warning, TEXT("Attack"));
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+
+	FVector WorldLocation;
+	FVector WorldDirection;
+	if (PlayerController->DeprojectMousePositionToWorld(WorldLocation, WorldDirection))
+	{
+		RightHandLocation = GetMesh()->GetComponentTransform().InverseTransformPosition(WorldLocation + WorldDirection * 100.0f);
+
+		RightHandLocation *= FVector(1.0f, 1.0f, 1.0f);
+		//DrawDebugSphere(GetWorld(), CursorLocation, 1.0f, 20, FColor::Red, true);
+		//UE_LOG(LogTemp, Warning, TEXT("%f %f %f"), CursorLocation.X, CursorLocation.Y, CursorLocation.Z);
+	}
 }
 
 // Called every frame
@@ -127,4 +143,14 @@ void APlayerCharacter::OnDamaged(float Damage)
 {
 	AdjustHealthPoint(-Damage);
 	UE_LOG(LogTemp, Warning, TEXT("Lost Health"));
+}
+
+FVector APlayerCharacter::GetLeftHandLocation()
+{
+	if (MySword != nullptr)
+	{
+		FVector SocketPosition = MySword->GetComponentByClass<UStaticMeshComponent>()->GetSocketTransform(FName("Left Hand Socket")).GetLocation();
+		LeftHandLocation = GetMesh()->GetComponentTransform().InverseTransformPosition(SocketPosition);
+	}
+	return LeftHandLocation;
 }
