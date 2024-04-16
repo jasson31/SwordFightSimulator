@@ -15,8 +15,12 @@ APlayerCharacter::APlayerCharacter()
 	//CameraBoom->bUsePawnControlRotation = true;
 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("PlayerCamera"));
+	//Camera->SetupAttachment(CameraBoom);
 	Camera->SetupAttachment(GetMesh(), "CameraSocket");
 	Camera->bUsePawnControlRotation = true;
+	//bUseControllerRotationPitch = false;
+
+	bReplicates = true;
 }
 
 // Called when the game starts or when spawned
@@ -24,20 +28,39 @@ void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	FActorSpawnParameters SpawnParameters = FActorSpawnParameters();
-	SpawnParameters.Owner = this;
-	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-	MySword = GetWorld()->SpawnActor<ASword>(SwordBlueprint, SpawnParameters);
-
-	if (MySword == nullptr)
+	if (HasAuthority())
 	{
-		return;
+		FActorSpawnParameters SpawnParameters = FActorSpawnParameters();
+		SpawnParameters.Owner = this;
+		SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		MySword = GetWorld()->SpawnActor<ASword>(SwordBlueprint, SpawnParameters);
+
+		if (MySword == nullptr)
+		{
+			return;
+		}
+
+		MySword->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, "Grip Point Socket");
+
+		SetHealthPoint(MaxHealthPoint);
 	}
+}
 
-	MySword->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, "Grip Point Socket");
+// Called every frame
+void APlayerCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	const FString Values = FString::Printf(TEXT("Health : %f"), HealthPoint);
+	DrawDebugString(GetWorld(), GetActorLocation(), Values, nullptr, FColor::White, 0.0f, true);
+}
 
-	SetHealthPoint(MaxHealthPoint);
+void APlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty >& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME_CONDITION(APlayerCharacter, HealthPoint, COND_OwnerOnly);
+	//DOREPLIFETIME_CONDITION(APlayerCharacter, RightHandLocation, COND_OwnerOnly);
 }
 
 void APlayerCharacter::Move(const FInputActionValue& Value)
@@ -70,9 +93,20 @@ void APlayerCharacter::StartAttackMode(const FInputActionValue& Value)
 {
 	if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
 	{
+		ULocalPlayer* LocalPlayer = PlayerController->GetLocalPlayer();
 		if (UEnhancedInputLocalPlayerSubsystem* SubSystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
 		{
 			SubSystem->AddMappingContext(AttackMappingContext, 1);
+			FViewport* Viewport = LocalPlayer->ViewportClient->Viewport;
+			if (Viewport)
+			{
+				FVector2D ViewportSize;
+				LocalPlayer->ViewportClient->GetViewportSize(ViewportSize);
+				const int32 X = static_cast<int32>(ViewportSize.X * 0.5f);
+				const int32 Y = static_cast<int32>(ViewportSize.Y * 0.5f);
+				UE_LOG(LogTemp, Warning, TEXT("%d, %d"), X, Y);
+				Viewport->SetMouse(X, Y);
+			}
 		}
 	}
 
@@ -83,7 +117,8 @@ void APlayerCharacter::StopAttackMode(const FInputActionValue& Value)
 {
 	if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
 	{
-		if (UEnhancedInputLocalPlayerSubsystem* SubSystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
+		ULocalPlayer* LocalPlayer = PlayerController->GetLocalPlayer();
+		if (UEnhancedInputLocalPlayerSubsystem* SubSystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(LocalPlayer))
 		{
 			SubSystem->RemoveMappingContext(AttackMappingContext);
 		}
@@ -109,13 +144,6 @@ void APlayerCharacter::Attack(const FInputActionValue& Value)
 	}
 }
 
-// Called every frame
-void APlayerCharacter::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-}
-
 // Called to bind functionality to input
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -129,6 +157,9 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 			{
 				SubSystem->AddMappingContext(DefaultMappingContext, 0);
 			}
+
+			PlayerController->PlayerCameraManager->ViewPitchMin = -30.0f;
+			PlayerController->PlayerCameraManager->ViewPitchMax = 30.0f;
 		}
 
 		EnhancedPlayerInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Move);
@@ -141,8 +172,8 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 void APlayerCharacter::OnDamaged(float Damage)
 {
-	AdjustHealthPoint(-Damage);
 	UE_LOG(LogTemp, Warning, TEXT("Lost Health"));
+	AdjustHealthPoint(-Damage);
 }
 
 FVector APlayerCharacter::GetLeftHandLocation()
@@ -153,4 +184,9 @@ FVector APlayerCharacter::GetLeftHandLocation()
 		LeftHandLocation = GetMesh()->GetComponentTransform().InverseTransformPosition(SocketPosition);
 	}
 	return LeftHandLocation;
+}
+
+void APlayerCharacter::ServerProcessDamage_Implementation(AActor* Actor, float Damage)
+{
+	Cast<IDamagable>(Actor)->OnDamaged(Damage);
 }

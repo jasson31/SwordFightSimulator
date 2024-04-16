@@ -8,8 +8,9 @@
 #include "EnhancedInputSubsystems.h"
 #include <GameFramework/SpringArmComponent.h>
 #include <Camera/CameraComponent.h>
-#include "Sword.h"
 #include "Damagable.h"
+#include "Net/UnrealNetwork.h"
+#include "Sword.h"
 #include "PlayerCharacter.generated.h"
 
 UCLASS()
@@ -38,12 +39,13 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = Input)
 	UInputAction* AttackAction;
 
-	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = PlayerCamera, meta = (AllowPrivateAccess = "true"))
-	//USpringArmComponent* CameraBoom;
+	/*UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = PlayerCamera, meta = (AllowPrivateAccess = "true"))
+	USpringArmComponent* CameraBoom;*/
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Camera")
 	UCameraComponent* Camera;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	TSubclassOf<ASword> SwordBlueprint;
+
 
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
@@ -53,13 +55,15 @@ protected:
 
 	void SetHealthPoint(float Value) { HealthPoint = Value; }
 	void AdjustHealthPoint(float Value) { SetHealthPoint(FMath::Clamp(HealthPoint + Value, 0.0f, MaxHealthPoint)); }
-
+	
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Player Character")
 	float HealthPoint = 0.0f;
 	float MaxHealthPoint = 100.0f;
+
 	FVector RightHandLocation;
 	FVector LeftHandLocation;
 	bool bIsAttacking = false;
-	ASword* MySword;
+	AActor* MySword;
 
 public:
 	// Called every frame
@@ -72,11 +76,12 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void GetHealthInformation(float& OutCurrentHealthPoint, float& OutMaxHealthPoint) { OutCurrentHealthPoint = HealthPoint; OutMaxHealthPoint = MaxHealthPoint; }
-
 	UFUNCTION(BlueprintCallable)
 	FVector GetRightHandLocation() const { return RightHandLocation; }
 	UFUNCTION(BlueprintCallable)
 	FVector GetLeftHandLocation();
 	UFUNCTION(BlueprintCallable)
 	bool GetbIsAttacking() const { return bIsAttacking; }
+	UFUNCTION(Server, Reliable)
+	void ServerProcessDamage(AActor* Actor, float Damage);
 };

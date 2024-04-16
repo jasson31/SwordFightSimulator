@@ -3,6 +3,7 @@
 
 #include "Sword.h"
 #include "Damagable.h"
+#include "PlayerCharacter.h"
 
 // Sets default values
 ASword::ASword()
@@ -15,6 +16,8 @@ ASword::ASword()
 
 	//CapsuleComponent = CreateDefaultSubobject<UCapsuleComponent>("Capsule Component");
 	//CapsuleComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepWorldTransform);
+
+	bReplicates = true;
 }
 
 // Called when the game starts or when spawned
@@ -22,17 +25,22 @@ void ASword::BeginPlay()
 {
 	Super::BeginPlay();
 
-	SwordMesh->OnComponentBeginOverlap.AddDynamic(this, &ASword::OnOverlapBegin);
-	SwordMesh->OnComponentEndOverlap.AddDynamic(this, &ASword::OnOverlapEnd);
+	if (HasAuthority())
+	{
+		SwordMesh->OnComponentBeginOverlap.AddDynamic(this, &ASword::OnOverlapBegin);
+		SwordMesh->OnComponentEndOverlap.AddDynamic(this, &ASword::OnOverlapEnd);
+	}
 }
 
 void ASword::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	IDamagable* HitDamagable = Cast<IDamagable>(OtherActor);
-	if (HitDamagable != nullptr && Owner != OtherActor)
+	if (Owner != OtherActor)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Hit, %s"), *OtherActor->GetActorNameOrLabel());
-		HitDamagable->OnDamaged(Damage);
+		if (IDamagable* HitDamagable = Cast<IDamagable>(OtherActor))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("%s hit %s"), *this->GetActorNameOrLabel(), *OtherActor->GetActorNameOrLabel());
+			Cast<APlayerCharacter>(OtherActor)->ServerProcessDamage(OtherActor, Damage);
+		}
 	}
 }
 
@@ -41,6 +49,6 @@ void ASword::OnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* Othe
 	IDamagable* HitDamagable = Cast<IDamagable>(OtherActor);
 	if (HitDamagable != nullptr && Owner != OtherActor)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("End, %s"), *OtherActor->GetActorNameOrLabel());
+		UE_LOG(LogTemp, Warning, TEXT("%s hit end %s"), *this->GetActorNameOrLabel(), *OtherActor->GetActorNameOrLabel());
 	}
 }
