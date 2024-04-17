@@ -53,6 +53,7 @@ void APlayerCharacter::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 	const FString Values = FString::Printf(TEXT("Health : %f"), HealthPoint);
 	DrawDebugString(GetWorld(), GetActorLocation(), Values, nullptr, FColor::White, 0.0f, true);
+	UE_LOG(LogTemp, Warning, TEXT("%s attack %d"), *this->GetActorNameOrLabel(), bIsAttacking);
 }
 
 void APlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty >& OutLifetimeProps) const
@@ -60,7 +61,10 @@ void APlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty >& Ou
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME_CONDITION(APlayerCharacter, HealthPoint, COND_OwnerOnly);
-	//DOREPLIFETIME_CONDITION(APlayerCharacter, RightHandLocation, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(APlayerCharacter, RightHandLocation, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(APlayerCharacter, LeftHandLocation, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(APlayerCharacter, MySword, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(APlayerCharacter, bIsAttacking, COND_OwnerOnly);
 }
 
 void APlayerCharacter::Move(const FInputActionValue& Value)
@@ -104,13 +108,11 @@ void APlayerCharacter::StartAttackMode(const FInputActionValue& Value)
 				LocalPlayer->ViewportClient->GetViewportSize(ViewportSize);
 				const int32 X = static_cast<int32>(ViewportSize.X * 0.5f);
 				const int32 Y = static_cast<int32>(ViewportSize.Y * 0.5f);
-				UE_LOG(LogTemp, Warning, TEXT("%d, %d"), X, Y);
 				Viewport->SetMouse(X, Y);
 			}
 		}
 	}
-
-	bIsAttacking = true;
+	ServerSetAttackMode(true);
 }
 
 void APlayerCharacter::StopAttackMode(const FInputActionValue& Value)
@@ -124,7 +126,7 @@ void APlayerCharacter::StopAttackMode(const FInputActionValue& Value)
 		}
 	}
 
-	bIsAttacking = false;
+	ServerSetAttackMode(false);
 }
 
 void APlayerCharacter::Attack(const FInputActionValue& Value)
@@ -138,7 +140,7 @@ void APlayerCharacter::Attack(const FInputActionValue& Value)
 	{
 		RightHandLocation = GetMesh()->GetComponentTransform().InverseTransformPosition(WorldLocation + WorldDirection * 100.0f);
 
-		RightHandLocation *= FVector(1.0f, 1.0f, 1.0f);
+		//RightHandLocation *= FVector(1.0f, 1.0f, 1.0f);
 		//DrawDebugSphere(GetWorld(), CursorLocation, 1.0f, 20, FColor::Red, true);
 		//UE_LOG(LogTemp, Warning, TEXT("%f %f %f"), CursorLocation.X, CursorLocation.Y, CursorLocation.Z);
 	}
@@ -184,6 +186,11 @@ FVector APlayerCharacter::GetLeftHandLocation()
 		LeftHandLocation = GetMesh()->GetComponentTransform().InverseTransformPosition(SocketPosition);
 	}
 	return LeftHandLocation;
+}
+
+void APlayerCharacter::ServerSetAttackMode_Implementation(bool AttackMode)
+{
+	bIsAttacking = AttackMode;
 }
 
 void APlayerCharacter::ServerProcessDamage_Implementation(AActor* Actor, float Damage)

@@ -39,6 +39,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = Input)
 	UInputAction* AttackAction;
 
+	UFUNCTION(Server, Reliable)
+	void ServerSetAttackMode(bool AttackMode);
+
 	/*UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = PlayerCamera, meta = (AllowPrivateAccess = "true"))
 	USpringArmComponent* CameraBoom;*/
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Camera")
@@ -60,10 +63,14 @@ protected:
 	float HealthPoint = 0.0f;
 	float MaxHealthPoint = 100.0f;
 
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Player Character")
 	FVector RightHandLocation;
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Player Character")
 	FVector LeftHandLocation;
-	bool bIsAttacking = false;
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Player Character")
 	AActor* MySword;
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Player Character")
+	bool bIsAttacking = false;
 
 public:
 	// Called every frame
