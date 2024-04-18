@@ -42,7 +42,7 @@ void APlayerCharacter::BeginPlay()
 			return;
 		}
 
-		MySword->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, "Grip Point Socket");
+		//MySword->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, "Grip Point Socket");
 
 		SetHealthPoint(MaxHealthPoint);
 	}

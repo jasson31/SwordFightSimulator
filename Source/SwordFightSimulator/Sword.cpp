@@ -39,9 +39,12 @@ void ASword::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* Ot
 	{
 		if (IDamagable* HitDamagable = Cast<IDamagable>(OtherActor))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("%s hit %s"), *this->GetActorNameOrLabel(), *OtherActor->GetActorNameOrLabel());
+			//UE_LOG(LogTemp, Warning, TEXT("%s hit %s"), *this->GetActorNameOrLabel(), *OtherActor->GetActorNameOrLabel());
 			Cast<APlayerCharacter>(OtherActor)->ServerProcessDamage(OtherActor, Damage);
 		}
+
+		UE_LOG(LogTemp, Warning, TEXT("%s hit %s %s, %s"), *this->GetActorNameOrLabel(), *OtherActor->GetActorNameOrLabel(), *SweepResult.ImpactPoint.ToString(), *SweepResult.ImpactNormal.ToString());
+		DrawDebugLine(GetWorld(), SweepResult.ImpactPoint, SweepResult.ImpactPoint + SweepResult.ImpactNormal * 5.0f, FColor::Red, false, 5.0f);
 	}
 }
 
