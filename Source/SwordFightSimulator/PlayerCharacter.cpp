@@ -3,6 +3,8 @@
 
 #include "PlayerCharacter.h"
 
+#define ROLE_TO_STRING(Value) FindObject<UEnum>(ANY_PACKAGE, TEXT("ENetRole"), true)->GetNameStringByIndex((int32)Value)
+
 // Sets default values
 APlayerCharacter::APlayerCharacter()
 {
@@ -20,7 +22,6 @@ APlayerCharacter::APlayerCharacter()
 	Camera->bUsePawnControlRotation = true;
 	//bUseControllerRotationPitch = false;
 
-	bReplicates = true;
 }
 
 // Called when the game starts or when spawned
@@ -51,20 +52,35 @@ void APlayerCharacter::BeginPlay()
 void APlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	const FString Values = FString::Printf(TEXT("Health : %f"), HealthPoint);
-	DrawDebugString(GetWorld(), GetActorLocation(), Values, nullptr, FColor::White, 0.0f, true);
-	UE_LOG(LogTemp, Warning, TEXT("%s attack %d"), *this->GetActorNameOrLabel(), bIsAttacking);
+
+	//const FString Values = FString::Printf(TEXT("Health : %\nLocal Role : %s\nRemote Role : %s"), HealthPoint, *ROLE_TO_STRING(GetLocalRole()), *ROLE_TO_STRING(GetRemoteRole()));
+	//DrawDebugString(GetWorld(), GetActorLocation(), Values, nullptr, FColor::White, 0.0f, true);
+	//UE_LOG(LogTemp, Warning, TEXT("%s attack mode called %d, owner %s"), *this->GetActorNameOrLabel(), bIsAttacking, *GetNetOwner()->GetName());
+
+	const FString LocalRoleString = ROLE_TO_STRING(GetLocalRole());
+	const FString RemoteRoleString = ROLE_TO_STRING(GetRemoteRole());
+	const FString OwnerString = GetNetOwner() != nullptr ? GetNetOwner()->GetName() : TEXT("No Owner");
+	const FString ConnectionString = GetNetConnection() != nullptr ? TEXT("Valid") : TEXT("In-valid");
+
+	const FString Values = FString::Printf(
+		TEXT("Local: %s\nRemote: %s\nOwner: %s\nConnection: %s"),
+		*LocalRoleString,
+		*RemoteRoleString,
+		*OwnerString,
+		*ConnectionString);
+
+	FColor Color = GetNetConnection() != nullptr ? FColor::Green : FColor::Red;
+	DrawDebugString(GetWorld(), GetActorLocation(), Values, nullptr, Color, 0.f, true);
 }
 
 void APlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty >& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME_CONDITION(APlayerCharacter, HealthPoint, COND_OwnerOnly);
-	DOREPLIFETIME_CONDITION(APlayerCharacter, RightHandLocation, COND_OwnerOnly);
-	DOREPLIFETIME_CONDITION(APlayerCharacter, LeftHandLocation, COND_OwnerOnly);
-	DOREPLIFETIME_CONDITION(APlayerCharacter, MySword, COND_OwnerOnly);
-	DOREPLIFETIME_CONDITION(APlayerCharacter, bIsAttacking, COND_OwnerOnly);
+	DOREPLIFETIME(APlayerCharacter, HealthPoint);
+	DOREPLIFETIME(APlayerCharacter, RightHandLocation);
+	DOREPLIFETIME(APlayerCharacter, MySword);
+	DOREPLIFETIME(APlayerCharacter, bIsAttacking);
 }
 
 void APlayerCharacter::Move(const FInputActionValue& Value)
@@ -138,7 +154,8 @@ void APlayerCharacter::Attack(const FInputActionValue& Value)
 	FVector WorldDirection;
 	if (PlayerController->DeprojectMousePositionToWorld(WorldLocation, WorldDirection))
 	{
-		RightHandLocation = GetMesh()->GetComponentTransform().InverseTransformPosition(WorldLocation + WorldDirection * 100.0f);
+		FVector TempRightHandLocation = GetMesh()->GetComponentTransform().InverseTransformPosition(WorldLocation + WorldDirection * 100.0f);
+		ServerSetRightHandLocation(TempRightHandLocation);
 
 		//RightHandLocation *= FVector(1.0f, 1.0f, 1.0f);
 		//DrawDebugSphere(GetWorld(), CursorLocation, 1.0f, 20, FColor::Red, true);
@@ -191,6 +208,11 @@ FVector APlayerCharacter::GetLeftHandLocation()
 void APlayerCharacter::ServerSetAttackMode_Implementation(bool AttackMode)
 {
 	bIsAttacking = AttackMode;
+}
+
+void APlayerCharacter::ServerSetRightHandLocation_Implementation(FVector NewHandLocation)
+{
+	RightHandLocation = NewHandLocation;
 }
 
 void APlayerCharacter::ServerProcessDamage_Implementation(AActor* Actor, float Damage)
