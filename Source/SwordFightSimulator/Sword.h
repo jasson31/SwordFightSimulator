@@ -27,7 +27,8 @@ protected:
 public:
 	// Sets default values for this actor's properties
 	ASword();
-	bool CheckSwordMovable(FVector CheckDirection);
+	bool CheckSwordBlocked(FVector CheckDirection);
+	;
 
 protected:
 	// Called when the game starts or when spawned

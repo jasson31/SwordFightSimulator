@@ -2,6 +2,7 @@
 
 
 #include "PlayerCharacter.h"
+#include <Kismet/KismetMathLibrary.h>
 
 #define ROLE_TO_STRING(Value) FindObject<UEnum>(ANY_PACKAGE, TEXT("ENetRole"), true)->GetNameStringByIndex((int32)Value)
 
@@ -105,6 +106,28 @@ void APlayerCharacter::Look(const FInputActionValue& Value)
 	}
 }
 
+void APlayerCharacter::SetRightHandLocation()
+{
+	FVector AimVector = FRotator(AimPitch, AimYaw, 0.0f).Vector();
+	FVector AimLocation = UKismetMathLibrary::ComposeTransforms(GetMesh()->GetSocketTransform("CameraSocket", ERelativeTransformSpace::RTS_World), FTransform(AimVector * 200.0f)).GetLocation();
+
+	FVector LocalRightHandLocation = GetMesh()->GetComponentTransform().InverseTransformPosition(AimLocation);
+	FVector AimMoveDirection = AimLocation - PrevAimLocation;
+	AimMoveDirection.Normalize();
+	if (!MySword->CheckSwordBlocked(AimMoveDirection))
+	{
+		ServerSetRightHandLocation(LocalRightHandLocation);
+		PrevAimLocation = AimLocation;
+		PreviousAimPitch = AimPitch;
+		PreviousAimYaw = AimYaw;
+	}
+	else
+	{
+		AimPitch = PreviousAimPitch;
+		AimYaw = PreviousAimYaw;
+	}
+}
+
 void APlayerCharacter::StartAttackMode(const FInputActionValue& Value)
 {
 	if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
@@ -113,18 +136,14 @@ void APlayerCharacter::StartAttackMode(const FInputActionValue& Value)
 		if (UEnhancedInputLocalPlayerSubsystem* SubSystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
 		{
 			SubSystem->AddMappingContext(AttackMappingContext, 1);
-			FViewport* Viewport = LocalPlayer->ViewportClient->Viewport;
-			if (Viewport)
-			{
-				FVector2D ViewportSize;
-				LocalPlayer->ViewportClient->GetViewportSize(ViewportSize);
-				const int32 X = static_cast<int32>(ViewportSize.X * 0.5f);
-				const int32 Y = static_cast<int32>(ViewportSize.Y * 0.5f);
-				Viewport->SetMouse(X, Y);
-			}
 		}
 	}
 	ServerSetAttackMode(true);
+
+	FRotator CurrentHeadRotator = GetMesh()->GetSocketTransform("CameraSocket", ERelativeTransformSpace::RTS_World).Rotator();
+	AimPitch = CurrentHeadRotator.Pitch;
+	AimYaw = CurrentHeadRotator.Yaw;
+	SetRightHandLocation();
 }
 
 void APlayerCharacter::StopAttackMode(const FInputActionValue& Value)
@@ -143,31 +162,36 @@ void APlayerCharacter::StopAttackMode(const FInputActionValue& Value)
 
 void APlayerCharacter::Attack(const FInputActionValue& Value)
 {
-	//UE_LOG(LogTemp, Warning, TEXT("Attack"));
-	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	////UE_LOG(LogTemp, Warning, TEXT("Attack"));
+	//APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	//FVector WorldLocation;
+	//FVector WorldDirection;
+	//PlayerController->DeprojectMousePositionToWorld(WorldLocation, WorldDirection);
+	//FVector TempRightHandLocation = GetMesh()->GetComponentTransform().InverseTransformPosition(WorldLocation + WorldDirection * 200.0f);
+	//DrawDebugSphere(GetWorld(), TempRightHandLocation, 5.0f, 20, FColor::Green, false, 2.0f);
+	//if (PlayerController->DeprojectMousePositionToWorld(WorldLocation, WorldDirection))
+	//{
+	//	FVector HandMoveDirection = WorldLocation - PrevRightHandLocation;
+	//	//HandMoveDirection.Normalize();
+	//	//HandMoveDirection = HandMoveDirection * 5.0f;
+	//	FVector TempRightHandLocation;
+	//	if (!MySword->CheckSwordMovable(HandMoveDirection))
+	//	{
+	//		TempRightHandLocation = GetMesh()->GetComponentTransform().InverseTransformPosition(WorldLocation + WorldDirection * 100.0f);
+	//	}
+	//	else
+	//	{
+	//		TempRightHandLocation = GetMesh()->GetComponentTransform().InverseTransformPosition(PrevRightHandLocation + PrevRightHandDirection * 100.0f);
+	//	}
+	//	ServerSetRightHandLocation(TempRightHandLocation);
+	//	PrevRightHandLocation = WorldLocation;
+	//	PrevRightHandDirection = WorldDirection;
+	//}
 
-	FVector WorldLocation;
-	FVector WorldDirection;
-	if (PlayerController->DeprojectMousePositionToWorld(WorldLocation, WorldDirection))
-	{
-		FVector HandMoveDirection = WorldLocation - PrevRightHandLocation;
-		//HandMoveDirection.Normalize();
-		//HandMoveDirection = HandMoveDirection * 5.0f;
-
-		FVector TempRightHandLocation;
-		if (!MySword->CheckSwordMovable(HandMoveDirection))
-		{
-			TempRightHandLocation = GetMesh()->GetComponentTransform().InverseTransformPosition(WorldLocation + WorldDirection * 100.0f);
-		}
-		else
-		{
-			TempRightHandLocation = GetMesh()->GetComponentTransform().InverseTransformPosition(PrevRightHandLocation + PrevRightHandDirection * 100.0f);
-		}
-
-		ServerSetRightHandLocation(TempRightHandLocation);
-		PrevRightHandLocation = WorldLocation;
-		PrevRightHandDirection = WorldDirection;
-	}
+	const FVector2D InputValue = Value.Get<FVector2D>();
+	AimYaw += InputValue.X;
+	AimPitch += InputValue.Y;
+	SetRightHandLocation();
 }
 
 // Called to bind functionality to input
@@ -184,8 +208,8 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 				SubSystem->AddMappingContext(DefaultMappingContext, 0);
 			}
 
-			PlayerController->PlayerCameraManager->ViewPitchMin = -30.0f;
-			PlayerController->PlayerCameraManager->ViewPitchMax = 30.0f;
+			PlayerController->PlayerCameraManager->ViewPitchMin = -90.0f;
+			PlayerController->PlayerCameraManager->ViewPitchMax = 90.0f;
 		}
 
 		EnhancedPlayerInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Move);

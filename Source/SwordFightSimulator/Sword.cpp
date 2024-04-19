@@ -20,11 +20,11 @@ ASword::ASword()
 	bReplicates = true;
 }
 
-bool ASword::CheckSwordMovable(FVector CheckDirection)
+bool ASword::CheckSwordBlocked(FVector CheckDirection)
 {
 	FHitResult HitResult;
-	FVector Start = GetActorLocation() + GetActorUpVector() * 54.0f;
-	FVector End = Start + CheckDirection;
+	FVector Start = GetActorLocation() + GetActorUpVector() * 54.0f + CheckDirection * 2.5f;
+	FVector End = Start;
 	float Height = 47.0f;
 	float Radius = 3.0f;
 	FCollisionQueryParams QueryParams;
@@ -65,25 +65,6 @@ void ASword::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* Ot
 			Cast<APlayerCharacter>(OtherActor)->ServerProcessDamage(OtherActor, Damage);
 
 		}
-
-
-		//FHitResult HitResult;
-		//FVector Start = GetActorLocation() + GetActorUpVector();
-		//FVector End = GetActorLocation() + GetActorUpVector() * 100.0f;
-		//float Height = 30.0f;
-		//float Radius = 10.0f;
-		//FCollisionQueryParams QueryParams;
-
-		//QueryParams.AddIgnoredActor(GetOwner());
-		//bool IsHit = GetWorld()->SweepSingleByChannel(HitResult, Start, End, GetActorRotation().Quaternion(), ECollisionChannel::ECC_GameTraceChannel3, FCollisionShape::MakeCapsule(Radius, Height), QueryParams);
-		//DrawDebugCapsule(GetWorld(), Start, Height, Radius, GetActorRotation().Quaternion(), FColor::Yellow, false, 0.0f);
-		//DrawDebugCapsule(GetWorld(), End, Height, Radius, GetActorRotation().Quaternion(), FColor::Red, false, 0.0f);
-
-		//if (IsHit)
-		//{
-		//	UE_LOG(LogTemp, Warning, TEXT("%s hit %s %s, %s"), *this->GetActorNameOrLabel(), *HitResult.GetActor()->GetActorNameOrLabel(), *HitResult.ImpactPoint.ToString(), *HitResult.ImpactNormal.ToString());
-		//	DrawDebugLine(GetWorld(), HitResult.ImpactPoint, HitResult.ImpactPoint + HitResult.ImpactNormal * 5.0f, FColor::Red, false, 5.0f);
-		//}
 	}
 }
 

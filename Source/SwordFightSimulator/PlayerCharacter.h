@@ -43,6 +43,7 @@ protected:
 	void ServerSetAttackMode(bool AttackMode);
 	UFUNCTION(Server, Reliable)
 	void ServerSetRightHandLocation(FVector NewHandLocation);
+	void SetRightHandLocation();
 
 	/*UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = PlayerCamera, meta = (AllowPrivateAccess = "true"))
 	USpringArmComponent* CameraBoom;*/
@@ -67,13 +68,19 @@ protected:
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Player Character")
 	FVector RightHandLocation;
-	FVector PrevRightHandLocation;
+	FVector PrevAimLocation;
 	FVector PrevRightHandDirection;
 	FVector LeftHandLocation;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Player Character")
 	ASword* MySword;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Player Character")
 	bool bIsAttacking = false;
+
+	float AimPitch = 0.0f;
+	float AimYaw = 0.0f;
+	float PreviousAimPitch = 0.0f;
+	float PreviousAimYaw = 0.0f;
+
 
 public:
 	// Called every frame
