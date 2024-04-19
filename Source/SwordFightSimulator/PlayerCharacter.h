@@ -68,6 +68,7 @@ protected:
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Player Character")
 	FVector RightHandLocation;
 	FVector PrevRightHandLocation;
+	FVector PrevRightHandDirection;
 	FVector LeftHandLocation;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Player Character")
 	ASword* MySword;

@@ -150,21 +150,23 @@ void APlayerCharacter::Attack(const FInputActionValue& Value)
 	FVector WorldDirection;
 	if (PlayerController->DeprojectMousePositionToWorld(WorldLocation, WorldDirection))
 	{
-		FVector TempRightHandLocation = GetMesh()->GetComponentTransform().InverseTransformPosition(WorldLocation + WorldDirection * 100.0f);
-
 		FVector HandMoveDirection = WorldLocation - PrevRightHandLocation;
 		//HandMoveDirection.Normalize();
 		//HandMoveDirection = HandMoveDirection * 5.0f;
 
+		FVector TempRightHandLocation;
 		if (!MySword->CheckSwordMovable(HandMoveDirection))
 		{
-			ServerSetRightHandLocation(TempRightHandLocation);
-			PrevRightHandLocation = WorldLocation;
+			TempRightHandLocation = GetMesh()->GetComponentTransform().InverseTransformPosition(WorldLocation + WorldDirection * 100.0f);
+		}
+		else
+		{
+			TempRightHandLocation = GetMesh()->GetComponentTransform().InverseTransformPosition(PrevRightHandLocation + PrevRightHandDirection * 100.0f);
 		}
 
-		//RightHandLocation *= FVector(1.0f, 1.0f, 1.0f);
-		//DrawDebugSphere(GetWorld(), CursorLocation, 1.0f, 20, FColor::Red, true);
-		//UE_LOG(LogTemp, Warning, TEXT("%f %f %f"), CursorLocation.X, CursorLocation.Y, CursorLocation.Z);
+		ServerSetRightHandLocation(TempRightHandLocation);
+		PrevRightHandLocation = WorldLocation;
+		PrevRightHandDirection = WorldDirection;
 	}
 }
 
