@@ -67,9 +67,10 @@ protected:
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Player Character")
 	FVector RightHandLocation;
+	FVector PrevRightHandLocation;
 	FVector LeftHandLocation;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Player Character")
-	AActor* MySword;
+	ASword* MySword;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Player Character")
 	bool bIsAttacking = false;
 

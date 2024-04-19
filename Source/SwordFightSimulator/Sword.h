@@ -21,9 +21,13 @@ protected:
 
 	float Damage = 10.0f;
 
+	// Called every frame
+	virtual void Tick(float DeltaTime) override;
+
 public:
 	// Sets default values for this actor's properties
 	ASword();
+	bool CheckSwordMovable(FVector CheckDirection);
 
 protected:
 	// Called when the game starts or when spawned

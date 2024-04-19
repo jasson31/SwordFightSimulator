@@ -42,7 +42,7 @@ void APlayerCharacter::BeginPlay()
 			return;
 		}
 
-		//MySword->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, "Grip Point Socket");
+		MySword->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, "Grip Point Socket");
 
 		SetHealthPoint(MaxHealthPoint);
 	}
@@ -53,24 +53,20 @@ void APlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	//const FString Values = FString::Printf(TEXT("Health : %\nLocal Role : %s\nRemote Role : %s"), HealthPoint, *ROLE_TO_STRING(GetLocalRole()), *ROLE_TO_STRING(GetRemoteRole()));
-	//DrawDebugString(GetWorld(), GetActorLocation(), Values, nullptr, FColor::White, 0.0f, true);
-	//UE_LOG(LogTemp, Warning, TEXT("%s attack mode called %d, owner %s"), *this->GetActorNameOrLabel(), bIsAttacking, *GetNetOwner()->GetName());
+	//const FString LocalRoleString = ROLE_TO_STRING(GetLocalRole());
+	//const FString RemoteRoleString = ROLE_TO_STRING(GetRemoteRole());
+	//const FString OwnerString = GetNetOwner() != nullptr ? GetNetOwner()->GetName() : TEXT("No Owner");
+	//const FString ConnectionString = GetNetConnection() != nullptr ? TEXT("Valid") : TEXT("In-valid");
 
-	const FString LocalRoleString = ROLE_TO_STRING(GetLocalRole());
-	const FString RemoteRoleString = ROLE_TO_STRING(GetRemoteRole());
-	const FString OwnerString = GetNetOwner() != nullptr ? GetNetOwner()->GetName() : TEXT("No Owner");
-	const FString ConnectionString = GetNetConnection() != nullptr ? TEXT("Valid") : TEXT("In-valid");
+	//const FString Values = FString::Printf(
+	//	TEXT("Local: %s\nRemote: %s\nOwner: %s\nConnection: %s"),
+	//	*LocalRoleString,
+	//	*RemoteRoleString,
+	//	*OwnerString,
+	//	*ConnectionString);
 
-	const FString Values = FString::Printf(
-		TEXT("Local: %s\nRemote: %s\nOwner: %s\nConnection: %s"),
-		*LocalRoleString,
-		*RemoteRoleString,
-		*OwnerString,
-		*ConnectionString);
-
-	FColor Color = GetNetConnection() != nullptr ? FColor::Green : FColor::Red;
-	DrawDebugString(GetWorld(), GetActorLocation(), Values, nullptr, Color, 0.f, true);
+	//FColor Color = GetNetConnection() != nullptr ? FColor::Green : FColor::Red;
+	//DrawDebugString(GetWorld(), GetActorLocation(), Values, nullptr, Color, 0.f, true);
 }
 
 void APlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty >& OutLifetimeProps) const
@@ -155,7 +151,16 @@ void APlayerCharacter::Attack(const FInputActionValue& Value)
 	if (PlayerController->DeprojectMousePositionToWorld(WorldLocation, WorldDirection))
 	{
 		FVector TempRightHandLocation = GetMesh()->GetComponentTransform().InverseTransformPosition(WorldLocation + WorldDirection * 100.0f);
-		ServerSetRightHandLocation(TempRightHandLocation);
+
+		FVector HandMoveDirection = WorldLocation - PrevRightHandLocation;
+		//HandMoveDirection.Normalize();
+		//HandMoveDirection = HandMoveDirection * 5.0f;
+
+		if (!MySword->CheckSwordMovable(HandMoveDirection))
+		{
+			ServerSetRightHandLocation(TempRightHandLocation);
+			PrevRightHandLocation = WorldLocation;
+		}
 
 		//RightHandLocation *= FVector(1.0f, 1.0f, 1.0f);
 		//DrawDebugSphere(GetWorld(), CursorLocation, 1.0f, 20, FColor::Red, true);
