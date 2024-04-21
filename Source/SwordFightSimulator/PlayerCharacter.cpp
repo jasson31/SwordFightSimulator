@@ -106,25 +106,27 @@ void APlayerCharacter::Look(const FInputActionValue& Value)
 	}
 }
 
-void APlayerCharacter::SetRightHandLocation()
+void APlayerCharacter::SetRightHandLocation() 
 {
-	FVector AimVector = FRotator(AimPitch, AimYaw, 0.0f).Vector();
+	float NextAimPitch = FMath::Clamp(AttackPitch + AttackPitchDiff, AttackCenterPitch + AttackYawClamp.X, AttackCenterPitch + AttackYawClamp.Y);
+	float NextAimYaw = FMath::Clamp(AttackYaw + AttackYawDiff, AttackCenterYaw + AttackPitchClamp.X, AttackCenterYaw + AttackPitchClamp.Y);
+
+
+	FVector AimVector = FRotator(NextAimPitch, NextAimYaw, 0.0f).Vector();
 	FVector AimLocation = UKismetMathLibrary::ComposeTransforms(GetMesh()->GetSocketTransform("CameraSocket", ERelativeTransformSpace::RTS_World), FTransform(AimVector * 200.0f)).GetLocation();
+
+	FVector PrevAimVector = FRotator(AttackPitch, AttackYaw, 0.0f).Vector();
+	FVector PrevAimLocation = UKismetMathLibrary::ComposeTransforms(GetMesh()->GetSocketTransform("CameraSocket", ERelativeTransformSpace::RTS_World), FTransform(PrevAimVector * 200.0f)).GetLocation();
 
 	FVector LocalRightHandLocation = GetMesh()->GetComponentTransform().InverseTransformPosition(AimLocation);
 	FVector AimMoveDirection = AimLocation - PrevAimLocation;
 	AimMoveDirection.Normalize();
+
 	if (!MySword->CheckSwordBlocked(AimMoveDirection))
 	{
 		ServerSetRightHandLocation(LocalRightHandLocation);
-		PrevAimLocation = AimLocation;
-		PreviousAimPitch = AimPitch;
-		PreviousAimYaw = AimYaw;
-	}
-	else
-	{
-		AimPitch = PreviousAimPitch;
-		AimYaw = PreviousAimYaw;
+		AttackPitch = NextAimPitch;
+		AttackYaw = NextAimYaw;
 	}
 }
 
@@ -141,8 +143,8 @@ void APlayerCharacter::StartAttackMode(const FInputActionValue& Value)
 	ServerSetAttackMode(true);
 
 	FRotator CurrentHeadRotator = GetMesh()->GetSocketTransform("CameraSocket", ERelativeTransformSpace::RTS_World).Rotator();
-	AimPitch = CurrentHeadRotator.Pitch;
-	AimYaw = CurrentHeadRotator.Yaw;
+	AttackPitch = AttackCenterPitch = CurrentHeadRotator.Pitch;
+	AttackYaw = AttackCenterYaw = CurrentHeadRotator.Yaw;
 	SetRightHandLocation();
 }
 
@@ -156,41 +158,14 @@ void APlayerCharacter::StopAttackMode(const FInputActionValue& Value)
 			SubSystem->RemoveMappingContext(AttackMappingContext);
 		}
 	}
-
 	ServerSetAttackMode(false);
 }
 
 void APlayerCharacter::Attack(const FInputActionValue& Value)
 {
-	////UE_LOG(LogTemp, Warning, TEXT("Attack"));
-	//APlayerController* PlayerController = Cast<APlayerController>(GetController());
-	//FVector WorldLocation;
-	//FVector WorldDirection;
-	//PlayerController->DeprojectMousePositionToWorld(WorldLocation, WorldDirection);
-	//FVector TempRightHandLocation = GetMesh()->GetComponentTransform().InverseTransformPosition(WorldLocation + WorldDirection * 200.0f);
-	//DrawDebugSphere(GetWorld(), TempRightHandLocation, 5.0f, 20, FColor::Green, false, 2.0f);
-	//if (PlayerController->DeprojectMousePositionToWorld(WorldLocation, WorldDirection))
-	//{
-	//	FVector HandMoveDirection = WorldLocation - PrevRightHandLocation;
-	//	//HandMoveDirection.Normalize();
-	//	//HandMoveDirection = HandMoveDirection * 5.0f;
-	//	FVector TempRightHandLocation;
-	//	if (!MySword->CheckSwordMovable(HandMoveDirection))
-	//	{
-	//		TempRightHandLocation = GetMesh()->GetComponentTransform().InverseTransformPosition(WorldLocation + WorldDirection * 100.0f);
-	//	}
-	//	else
-	//	{
-	//		TempRightHandLocation = GetMesh()->GetComponentTransform().InverseTransformPosition(PrevRightHandLocation + PrevRightHandDirection * 100.0f);
-	//	}
-	//	ServerSetRightHandLocation(TempRightHandLocation);
-	//	PrevRightHandLocation = WorldLocation;
-	//	PrevRightHandDirection = WorldDirection;
-	//}
-
 	const FVector2D InputValue = Value.Get<FVector2D>();
-	AimYaw += InputValue.X;
-	AimPitch += InputValue.Y;
+	AttackYawDiff = FMath::Clamp(InputValue.X, AttackInputYawDiffClamp.X, AttackInputYawDiffClamp.Y);
+	AttackPitchDiff = FMath::Clamp(InputValue.Y, AttackInputPitchDiffClamp.X, AttackInputPitchDiffClamp.Y);
 	SetRightHandLocation();
 }
 
@@ -208,8 +183,8 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 				SubSystem->AddMappingContext(DefaultMappingContext, 0);
 			}
 
-			PlayerController->PlayerCameraManager->ViewPitchMin = -90.0f;
-			PlayerController->PlayerCameraManager->ViewPitchMax = 90.0f;
+			PlayerController->PlayerCameraManager->ViewPitchMin = 0.0f;
+			PlayerController->PlayerCameraManager->ViewPitchMax = 0.0f;
 		}
 
 		EnhancedPlayerInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Move);

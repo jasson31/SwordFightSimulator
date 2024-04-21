@@ -9,7 +9,7 @@
 ASword::ASword()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
 	SwordMesh = CreateDefaultSubobject<UStaticMeshComponent>("Mesh Component");
 	RootComponent = SwordMesh;
@@ -23,8 +23,8 @@ ASword::ASword()
 bool ASword::CheckSwordBlocked(FVector CheckDirection)
 {
 	FHitResult HitResult;
-	FVector Start = GetActorLocation() + GetActorUpVector() * 54.0f + CheckDirection * 2.5f;
-	FVector End = Start;
+	FVector Start = GetActorLocation() + GetActorUpVector() * 54.0f;
+	FVector End = Start + CheckDirection * 1.0f;
 	float Height = 47.0f;
 	float Radius = 3.0f;
 	FCollisionQueryParams QueryParams;
@@ -34,11 +34,6 @@ bool ASword::CheckSwordBlocked(FVector CheckDirection)
 	DrawDebugCapsule(GetWorld(), Start, Height, Radius, GetActorRotation().Quaternion(), FColor::Yellow, false, 0.0f);
 	DrawDebugCapsule(GetWorld(), End, Height, Radius, GetActorRotation().Quaternion(), FColor::Red, false, 0.0f);
 
-	if (IsHit)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("%s hit %s %s, %s"), *this->GetActorNameOrLabel(), *HitResult.GetActor()->GetActorNameOrLabel(), *HitResult.ImpactPoint.ToString(), *HitResult.ImpactNormal.ToString());
-		DrawDebugLine(GetWorld(), HitResult.ImpactPoint, HitResult.ImpactPoint + HitResult.ImpactNormal * 5.0f, FColor::Red, false, 5.0f);
-	}
 	return IsHit;
 }
 
@@ -61,9 +56,7 @@ void ASword::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* Ot
 	{
 		if (IDamagable* HitDamagable = Cast<IDamagable>(OtherActor))
 		{
-			//UE_LOG(LogTemp, Warning, TEXT("%s hit %s"), *this->GetActorNameOrLabel(), *OtherActor->GetActorNameOrLabel());
 			Cast<APlayerCharacter>(OtherActor)->ServerProcessDamage(OtherActor, Damage);
-
 		}
 	}
 }
@@ -75,11 +68,6 @@ void ASword::OnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* Othe
 	{
 		UE_LOG(LogTemp, Warning, TEXT("%s hit end %s"), *this->GetActorNameOrLabel(), *OtherActor->GetActorNameOrLabel());
 	}
-}
-
-void ASword::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
 }
 
 //void ASword::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)

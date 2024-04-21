@@ -68,7 +68,7 @@ protected:
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Player Character")
 	FVector RightHandLocation;
-	FVector PrevAimLocation;
+	//FVector PrevAimLocation;
 	FVector PrevRightHandDirection;
 	FVector LeftHandLocation;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Player Character")
@@ -76,11 +76,16 @@ protected:
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Player Character")
 	bool bIsAttacking = false;
 
-	float AimPitch = 0.0f;
-	float AimYaw = 0.0f;
-	float PreviousAimPitch = 0.0f;
-	float PreviousAimYaw = 0.0f;
-
+	float AttackPitch = 0.0f;
+	float AttackYaw = 0.0f;
+	float AttackPitchDiff;
+	float AttackYawDiff;
+	float AttackCenterPitch;
+	float AttackCenterYaw;
+	FVector2f AttackInputYawDiffClamp = FVector2f(-4.0f, 4.0f);
+	FVector2f AttackInputPitchDiffClamp = FVector2f(-4.0f, 4.0f);
+	FVector2f AttackYawClamp = FVector2f(-30.0f, 30.0f);
+	FVector2f AttackPitchClamp = FVector2f(-30.0f, 30.0f);
 
 public:
 	// Called every frame
