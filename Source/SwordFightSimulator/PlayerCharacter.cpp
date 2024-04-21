@@ -10,7 +10,7 @@
 APlayerCharacter::APlayerCharacter()
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
 	//CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	//CameraBoom->SetupAttachment(RootComponent);
@@ -49,27 +49,6 @@ void APlayerCharacter::BeginPlay()
 	}
 }
 
-// Called every frame
-void APlayerCharacter::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-	//const FString LocalRoleString = ROLE_TO_STRING(GetLocalRole());
-	//const FString RemoteRoleString = ROLE_TO_STRING(GetRemoteRole());
-	//const FString OwnerString = GetNetOwner() != nullptr ? GetNetOwner()->GetName() : TEXT("No Owner");
-	//const FString ConnectionString = GetNetConnection() != nullptr ? TEXT("Valid") : TEXT("In-valid");
-
-	//const FString Values = FString::Printf(
-	//	TEXT("Local: %s\nRemote: %s\nOwner: %s\nConnection: %s"),
-	//	*LocalRoleString,
-	//	*RemoteRoleString,
-	//	*OwnerString,
-	//	*ConnectionString);
-
-	//FColor Color = GetNetConnection() != nullptr ? FColor::Green : FColor::Red;
-	//DrawDebugString(GetWorld(), GetActorLocation(), Values, nullptr, Color, 0.f, true);
-}
-
 void APlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty >& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -106,10 +85,21 @@ void APlayerCharacter::Look(const FInputActionValue& Value)
 	}
 }
 
-void APlayerCharacter::SetRightHandLocation() 
+bool bIsParried = false;
+UPROPERTY()
+FTimerHandle ParriedTimer;
+float ParryStartTime;
+float ParryDuration = 0.5f;
+float ParryDelay = 0.01f;
+float ParryPitchDiff;
+float ParryYawDiff;
+
+void APlayerCharacter::ApplyParried()
 {
-	float NextAimPitch = FMath::Clamp(AttackPitch + AttackPitchDiff, AttackCenterPitch + AttackYawClamp.X, AttackCenterPitch + AttackYawClamp.Y);
-	float NextAimYaw = FMath::Clamp(AttackYaw + AttackYawDiff, AttackCenterYaw + AttackPitchClamp.X, AttackCenterYaw + AttackPitchClamp.Y);
+	ParryDuration -= ParryDelay;
+
+	float NextAimPitch = FMath::Clamp(AttackPitch - ParryPitchDiff, AttackCenterPitch + AttackYawClamp.X, AttackCenterPitch + AttackYawClamp.Y);
+	float NextAimYaw = FMath::Clamp(AttackYaw - ParryYawDiff, AttackCenterYaw + AttackPitchClamp.X, AttackCenterYaw + AttackPitchClamp.Y);
 
 
 	FVector AimVector = FRotator(NextAimPitch, NextAimYaw, 0.0f).Vector();
@@ -122,11 +112,50 @@ void APlayerCharacter::SetRightHandLocation()
 	FVector AimMoveDirection = AimLocation - PrevAimLocation;
 	AimMoveDirection.Normalize();
 
-	if (!MySword->CheckSwordBlocked(AimMoveDirection))
+	ServerSetRightHandLocation(LocalRightHandLocation);
+	AttackPitch = NextAimPitch;
+	AttackYaw = NextAimYaw;
+
+	if (ParryDuration < 0)
 	{
-		ServerSetRightHandLocation(LocalRightHandLocation);
-		AttackPitch = NextAimPitch;
-		AttackYaw = NextAimYaw;
+		bIsParried = false;
+		GetWorldTimerManager().ClearTimer(ParriedTimer);
+	}
+}
+
+void APlayerCharacter::SetRightHandLocation() 
+{
+	if (!bIsParried)
+	{
+		float NextAimPitch = FMath::Clamp(AttackPitch + AttackPitchDiff, AttackCenterPitch + AttackYawClamp.X, AttackCenterPitch + AttackYawClamp.Y);
+		float NextAimYaw = FMath::Clamp(AttackYaw + AttackYawDiff, AttackCenterYaw + AttackPitchClamp.X, AttackCenterYaw + AttackPitchClamp.Y);
+
+		UE_LOG(LogTemp, Warning, TEXT("%f %f"), AttackPitchDiff, AttackYawDiff);
+
+		FVector AimVector = FRotator(NextAimPitch, NextAimYaw, 0.0f).Vector();
+		FVector AimLocation = UKismetMathLibrary::ComposeTransforms(GetMesh()->GetSocketTransform("CameraSocket", ERelativeTransformSpace::RTS_World), FTransform(AimVector * 200.0f)).GetLocation();
+
+		FVector PrevAimVector = FRotator(AttackPitch, AttackYaw, 0.0f).Vector();
+		FVector PrevAimLocation = UKismetMathLibrary::ComposeTransforms(GetMesh()->GetSocketTransform("CameraSocket", ERelativeTransformSpace::RTS_World), FTransform(PrevAimVector * 200.0f)).GetLocation();
+
+		FVector LocalRightHandLocation = GetMesh()->GetComponentTransform().InverseTransformPosition(AimLocation);
+		FVector AimMoveDirection = AimLocation - PrevAimLocation;
+		AimMoveDirection.Normalize();
+
+		if (!MySword->CheckSwordBlocked(AimMoveDirection))
+		{
+			ServerSetRightHandLocation(LocalRightHandLocation);
+			AttackPitch = NextAimPitch;
+			AttackYaw = NextAimYaw;
+		}
+		else
+		{
+			ParryPitchDiff = AttackPitchDiff;
+			ParryYawDiff = AttackYawDiff;
+			ParryDuration = 0.5f;
+			bIsParried = true;
+			GetWorldTimerManager().SetTimer(ParriedTimer, this, &APlayerCharacter::ApplyParried, ParryDelay, true, 0.0f);
+		}
 	}
 }
 

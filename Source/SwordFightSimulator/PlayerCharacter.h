@@ -61,6 +61,7 @@ protected:
 
 	void SetHealthPoint(float Value) { HealthPoint = Value; }
 	void AdjustHealthPoint(float Value) { SetHealthPoint(FMath::Clamp(HealthPoint + Value, 0.0f, MaxHealthPoint)); }
+	void ApplyParried();
 	
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Player Character")
 	float HealthPoint = 0.0f;
@@ -88,8 +89,6 @@ protected:
 	FVector2f AttackPitchClamp = FVector2f(-30.0f, 30.0f);
 
 public:
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
