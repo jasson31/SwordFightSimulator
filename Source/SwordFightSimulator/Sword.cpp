@@ -56,7 +56,11 @@ void ASword::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* Ot
 	{
 		if (IDamagable* HitDamagable = Cast<IDamagable>(OtherActor))
 		{
-			Cast<APlayerCharacter>(OtherActor)->ServerProcessDamage(OtherActor, Damage);
+			APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(Owner);
+			if (PlayerCharacter == nullptr || PlayerCharacter->GetbIsAttacking())
+			{
+				Cast<APlayerCharacter>(OtherActor)->ServerProcessDamage(OtherActor, Damage);
+			}
 		}
 	}
 }

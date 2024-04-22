@@ -83,10 +83,26 @@ protected:
 	float AttackYawDiff;
 	float AttackCenterPitch;
 	float AttackCenterYaw;
+	UPROPERTY(EditDefaultsOnly, Category = "Player Character")
 	FVector2f AttackInputYawDiffClamp = FVector2f(-4.0f, 4.0f);
+	UPROPERTY(EditDefaultsOnly, Category = "Player Character")
 	FVector2f AttackInputPitchDiffClamp = FVector2f(-4.0f, 4.0f);
+	UPROPERTY(EditDefaultsOnly, Category = "Player Character")
 	FVector2f AttackYawClamp = FVector2f(-30.0f, 30.0f);
+	UPROPERTY(EditDefaultsOnly, Category = "Player Character")
 	FVector2f AttackPitchClamp = FVector2f(-30.0f, 30.0f);
+	bool bIsParried = false;
+	UPROPERTY()
+	FTimerHandle ParriedTimer;
+	float ParryStartTime;
+	float ParryDuration;
+	float CurrMaxParryDuration;
+	float MinParryDuration = 0.01f;
+	float MaxParryDuration = 0.3f;
+	float ParryDelay = 0.01f;
+	float ParryPitchDiff;
+	float ParryYawDiff;
+	float ParryStrengthRatio = 0.3f;
 
 public:
 

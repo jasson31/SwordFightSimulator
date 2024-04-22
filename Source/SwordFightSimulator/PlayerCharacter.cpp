@@ -85,21 +85,13 @@ void APlayerCharacter::Look(const FInputActionValue& Value)
 	}
 }
 
-bool bIsParried = false;
-UPROPERTY()
-FTimerHandle ParriedTimer;
-float ParryStartTime;
-float ParryDuration = 0.5f;
-float ParryDelay = 0.01f;
-float ParryPitchDiff;
-float ParryYawDiff;
-
 void APlayerCharacter::ApplyParried()
 {
 	ParryDuration -= ParryDelay;
 
-	float NextAimPitch = FMath::Clamp(AttackPitch - ParryPitchDiff, AttackCenterPitch + AttackYawClamp.X, AttackCenterPitch + AttackYawClamp.Y);
-	float NextAimYaw = FMath::Clamp(AttackYaw - ParryYawDiff, AttackCenterYaw + AttackPitchClamp.X, AttackCenterYaw + AttackPitchClamp.Y);
+	float BounceRatio = FMath::Pow(ParryDuration / CurrMaxParryDuration, 2) * 3;
+	float NextAimPitch = FMath::Clamp(AttackPitch - ParryPitchDiff * BounceRatio, AttackCenterPitch + AttackPitchClamp.X, AttackCenterPitch + AttackPitchClamp.Y);
+	float NextAimYaw = FMath::Clamp(AttackYaw - ParryYawDiff * BounceRatio, AttackCenterYaw + AttackYawClamp.X, AttackCenterYaw + AttackYawClamp.Y);
 
 
 	FVector AimVector = FRotator(NextAimPitch, NextAimYaw, 0.0f).Vector();
@@ -109,8 +101,6 @@ void APlayerCharacter::ApplyParried()
 	FVector PrevAimLocation = UKismetMathLibrary::ComposeTransforms(GetMesh()->GetSocketTransform("CameraSocket", ERelativeTransformSpace::RTS_World), FTransform(PrevAimVector * 200.0f)).GetLocation();
 
 	FVector LocalRightHandLocation = GetMesh()->GetComponentTransform().InverseTransformPosition(AimLocation);
-	FVector AimMoveDirection = AimLocation - PrevAimLocation;
-	AimMoveDirection.Normalize();
 
 	ServerSetRightHandLocation(LocalRightHandLocation);
 	AttackPitch = NextAimPitch;
@@ -127,10 +117,8 @@ void APlayerCharacter::SetRightHandLocation()
 {
 	if (!bIsParried)
 	{
-		float NextAimPitch = FMath::Clamp(AttackPitch + AttackPitchDiff, AttackCenterPitch + AttackYawClamp.X, AttackCenterPitch + AttackYawClamp.Y);
-		float NextAimYaw = FMath::Clamp(AttackYaw + AttackYawDiff, AttackCenterYaw + AttackPitchClamp.X, AttackCenterYaw + AttackPitchClamp.Y);
-
-		UE_LOG(LogTemp, Warning, TEXT("%f %f"), AttackPitchDiff, AttackYawDiff);
+		float NextAimPitch = FMath::Clamp(AttackPitch + AttackPitchDiff, AttackCenterPitch + AttackPitchClamp.X, AttackCenterPitch + AttackPitchClamp.Y);
+		float NextAimYaw = FMath::Clamp(AttackYaw + AttackYawDiff, AttackCenterYaw + AttackYawClamp.X, AttackCenterYaw + AttackYawClamp.Y);
 
 		FVector AimVector = FRotator(NextAimPitch, NextAimYaw, 0.0f).Vector();
 		FVector AimLocation = UKismetMathLibrary::ComposeTransforms(GetMesh()->GetSocketTransform("CameraSocket", ERelativeTransformSpace::RTS_World), FTransform(AimVector * 200.0f)).GetLocation();
@@ -150,10 +138,12 @@ void APlayerCharacter::SetRightHandLocation()
 		}
 		else
 		{
-			ParryPitchDiff = AttackPitchDiff;
-			ParryYawDiff = AttackYawDiff;
-			ParryDuration = 0.5f;
+			float ParryStrength = FMath::Sqrt(FMath::Pow(AttackPitchDiff, 2) + FMath::Pow(AttackYawDiff, 2));
+			CurrMaxParryDuration = ParryDuration = FMath::Clamp(ParryStrength, MinParryDuration, MaxParryDuration);
+			ParryPitchDiff = AttackPitchDiff * CurrMaxParryDuration / MaxParryDuration * ParryStrengthRatio;
+			ParryYawDiff = AttackYawDiff * CurrMaxParryDuration / MaxParryDuration * ParryStrengthRatio;
 			bIsParried = true;
+
 			GetWorldTimerManager().SetTimer(ParriedTimer, this, &APlayerCharacter::ApplyParried, ParryDelay, true, 0.0f);
 		}
 	}
