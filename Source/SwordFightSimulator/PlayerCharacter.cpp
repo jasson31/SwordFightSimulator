@@ -88,24 +88,8 @@ void APlayerCharacter::Look(const FInputActionValue& Value)
 void APlayerCharacter::ApplyParried()
 {
 	ParryDuration -= ParryDelay;
-
 	float BounceRatio = FMath::Pow(ParryDuration / CurrMaxParryDuration, 2) * 3;
-	float NextAimPitch = FMath::Clamp(AttackPitch - ParryPitchDiff * BounceRatio, AttackCenterPitch + AttackPitchClamp.X, AttackCenterPitch + AttackPitchClamp.Y);
-	float NextAimYaw = FMath::Clamp(AttackYaw - ParryYawDiff * BounceRatio, AttackCenterYaw + AttackYawClamp.X, AttackCenterYaw + AttackYawClamp.Y);
-
-
-	FVector AimVector = FRotator(NextAimPitch, NextAimYaw, 0.0f).Vector();
-	FVector AimLocation = UKismetMathLibrary::ComposeTransforms(GetMesh()->GetSocketTransform("CameraSocket", ERelativeTransformSpace::RTS_World), FTransform(AimVector * 200.0f)).GetLocation();
-
-	FVector PrevAimVector = FRotator(AttackPitch, AttackYaw, 0.0f).Vector();
-	FVector PrevAimLocation = UKismetMathLibrary::ComposeTransforms(GetMesh()->GetSocketTransform("CameraSocket", ERelativeTransformSpace::RTS_World), FTransform(PrevAimVector * 200.0f)).GetLocation();
-
-	FVector LocalRightHandLocation = GetMesh()->GetComponentTransform().InverseTransformPosition(AimLocation);
-
-	ServerSetRightHandLocation(LocalRightHandLocation);
-	AttackPitch = NextAimPitch;
-	AttackYaw = NextAimYaw;
-
+	SetRightHandLocation(-ParryPitchDiff * BounceRatio, -ParryYawDiff * BounceRatio, false);
 	if (ParryDuration < 0)
 	{
 		bIsParried = false;
@@ -113,39 +97,36 @@ void APlayerCharacter::ApplyParried()
 	}
 }
 
-void APlayerCharacter::SetRightHandLocation() 
+void APlayerCharacter::SetRightHandLocation(float AttackAimPitchDiff, float AttackAimYawDiff, bool CheckSwordMovable)
 {
-	if (!bIsParried)
+	float NextAimPitch = FMath::Clamp(AttackPitch + AttackAimPitchDiff, AttackCenterPitch + AttackPitchClamp.X, AttackCenterPitch + AttackPitchClamp.Y);
+	float NextAimYaw = FMath::Clamp(AttackYaw + AttackAimYawDiff, AttackCenterYaw + AttackYawClamp.X, AttackCenterYaw + AttackYawClamp.Y);
+
+	FVector AimVector = FRotator(NextAimPitch, NextAimYaw, 0.0f).Vector();
+	FVector AimLocation = UKismetMathLibrary::ComposeTransforms(GetMesh()->GetSocketTransform("CameraSocket", ERelativeTransformSpace::RTS_World), FTransform(AimVector * 200.0f)).GetLocation();
+
+	FVector PrevAimVector = FRotator(AttackPitch, AttackYaw, 0.0f).Vector();
+	FVector PrevAimLocation = UKismetMathLibrary::ComposeTransforms(GetMesh()->GetSocketTransform("CameraSocket", ERelativeTransformSpace::RTS_World), FTransform(PrevAimVector * 200.0f)).GetLocation();
+
+	FVector TempRightHandLocation = GetMesh()->GetComponentTransform().InverseTransformPosition(AimLocation);
+
+	FVector AimMoveDirection = AimLocation - PrevAimLocation;
+	AimMoveDirection.Normalize();
+	if (!(CheckSwordMovable && MySword->CheckSwordBlocked(AimMoveDirection)))
 	{
-		float NextAimPitch = FMath::Clamp(AttackPitch + AttackPitchDiff, AttackCenterPitch + AttackPitchClamp.X, AttackCenterPitch + AttackPitchClamp.Y);
-		float NextAimYaw = FMath::Clamp(AttackYaw + AttackYawDiff, AttackCenterYaw + AttackYawClamp.X, AttackCenterYaw + AttackYawClamp.Y);
+		ServerSetRightHandLocation(TempRightHandLocation);
+		AttackPitch = NextAimPitch;
+		AttackYaw = NextAimYaw;
+	}
+	else
+	{
+		float ParryStrength = FMath::Sqrt(FMath::Pow(AttackPitchDiff, 2) + FMath::Pow(AttackYawDiff, 2));
+		CurrMaxParryDuration = ParryDuration = FMath::Clamp(ParryStrength, MinParryDuration, MaxParryDuration);
+		ParryPitchDiff = AttackPitchDiff * CurrMaxParryDuration / MaxParryDuration * ParryStrengthRatio;
+		ParryYawDiff = AttackYawDiff * CurrMaxParryDuration / MaxParryDuration * ParryStrengthRatio;
+		bIsParried = true;
 
-		FVector AimVector = FRotator(NextAimPitch, NextAimYaw, 0.0f).Vector();
-		FVector AimLocation = UKismetMathLibrary::ComposeTransforms(GetMesh()->GetSocketTransform("CameraSocket", ERelativeTransformSpace::RTS_World), FTransform(AimVector * 200.0f)).GetLocation();
-
-		FVector PrevAimVector = FRotator(AttackPitch, AttackYaw, 0.0f).Vector();
-		FVector PrevAimLocation = UKismetMathLibrary::ComposeTransforms(GetMesh()->GetSocketTransform("CameraSocket", ERelativeTransformSpace::RTS_World), FTransform(PrevAimVector * 200.0f)).GetLocation();
-
-		FVector LocalRightHandLocation = GetMesh()->GetComponentTransform().InverseTransformPosition(AimLocation);
-		FVector AimMoveDirection = AimLocation - PrevAimLocation;
-		AimMoveDirection.Normalize();
-
-		if (!MySword->CheckSwordBlocked(AimMoveDirection))
-		{
-			ServerSetRightHandLocation(LocalRightHandLocation);
-			AttackPitch = NextAimPitch;
-			AttackYaw = NextAimYaw;
-		}
-		else
-		{
-			float ParryStrength = FMath::Sqrt(FMath::Pow(AttackPitchDiff, 2) + FMath::Pow(AttackYawDiff, 2));
-			CurrMaxParryDuration = ParryDuration = FMath::Clamp(ParryStrength, MinParryDuration, MaxParryDuration);
-			ParryPitchDiff = AttackPitchDiff * CurrMaxParryDuration / MaxParryDuration * ParryStrengthRatio;
-			ParryYawDiff = AttackYawDiff * CurrMaxParryDuration / MaxParryDuration * ParryStrengthRatio;
-			bIsParried = true;
-
-			GetWorldTimerManager().SetTimer(ParriedTimer, this, &APlayerCharacter::ApplyParried, ParryDelay, true, 0.0f);
-		}
+		GetWorldTimerManager().SetTimer(ParriedTimer, this, &APlayerCharacter::ApplyParried, ParryDelay, true, 0.0f);
 	}
 }
 
@@ -164,7 +145,7 @@ void APlayerCharacter::StartAttackMode(const FInputActionValue& Value)
 	FRotator CurrentHeadRotator = GetMesh()->GetSocketTransform("CameraSocket", ERelativeTransformSpace::RTS_World).Rotator();
 	AttackPitch = AttackCenterPitch = CurrentHeadRotator.Pitch;
 	AttackYaw = AttackCenterYaw = CurrentHeadRotator.Yaw;
-	SetRightHandLocation();
+	SetRightHandLocation(0, 0);
 }
 
 void APlayerCharacter::StopAttackMode(const FInputActionValue& Value)
@@ -182,10 +163,13 @@ void APlayerCharacter::StopAttackMode(const FInputActionValue& Value)
 
 void APlayerCharacter::Attack(const FInputActionValue& Value)
 {
-	const FVector2D InputValue = Value.Get<FVector2D>();
-	AttackYawDiff = FMath::Clamp(InputValue.X, AttackInputYawDiffClamp.X, AttackInputYawDiffClamp.Y);
-	AttackPitchDiff = FMath::Clamp(InputValue.Y, AttackInputPitchDiffClamp.X, AttackInputPitchDiffClamp.Y);
-	SetRightHandLocation();
+	if (!bIsParried)
+	{
+		const FVector2D InputValue = Value.Get<FVector2D>();
+		AttackYawDiff = FMath::Clamp(InputValue.X, AttackInputYawDiffClamp.X, AttackInputYawDiffClamp.Y);
+		AttackPitchDiff = FMath::Clamp(InputValue.Y, AttackInputPitchDiffClamp.X, AttackInputPitchDiffClamp.Y);
+		SetRightHandLocation(AttackPitchDiff, AttackYawDiff);
+	}
 }
 
 // Called to bind functionality to input
