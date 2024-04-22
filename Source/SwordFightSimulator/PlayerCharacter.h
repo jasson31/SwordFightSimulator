@@ -52,12 +52,8 @@ protected:
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Player Character")
 	bool bIsAttacking = false;
 
-	float AttackPitch = 0.0f;
-	float AttackYaw = 0.0f;
-	float AttackPitchDiff;
-	float AttackYawDiff;
-	float AttackCenterPitch;
-	float AttackCenterYaw;
+	FVector2f CurrAttackAim;
+	FVector2f AttackAimCenter;
 	UPROPERTY(EditDefaultsOnly, Category = "Player Character")
 	FVector2f AttackInputYawDiffClamp = FVector2f(-4.0f, 4.0f);
 	UPROPERTY(EditDefaultsOnly, Category = "Player Character")
@@ -66,17 +62,18 @@ protected:
 	FVector2f AttackYawClamp = FVector2f(-30.0f, 30.0f);
 	UPROPERTY(EditDefaultsOnly, Category = "Player Character")
 	FVector2f AttackPitchClamp = FVector2f(-30.0f, 30.0f);
+
 	bool bIsParried = false;
-	UPROPERTY()
-	FTimerHandle ParriedTimer;
-	float ParryStartTime;
+	FTimerHandle ParriedTimerHandle;
+	FTimerDelegate ParriedTimerDelegate;
 	float ParryDuration;
-	float CurrMaxParryDuration;
+	UPROPERTY(EditDefaultsOnly, Category = "Player Character")
 	float MinParryDuration = 0.01f;
+	UPROPERTY(EditDefaultsOnly, Category = "Player Character")
 	float MaxParryDuration = 0.3f;
-	float ParryDelay = 0.01f;
-	float ParryPitchDiff;
-	float ParryYawDiff;
+	UPROPERTY(EditDefaultsOnly, Category = "Player Character")
+	float ParryApplyDelay = 0.01f;
+	UPROPERTY(EditDefaultsOnly, Category = "Player Character")
 	float ParryStrengthRatio = 0.3f;
 
 protected:
@@ -87,7 +84,7 @@ protected:
 	void ServerSetAttackMode(bool AttackMode);
 	UFUNCTION(Server, Reliable)
 	void ServerSetRightHandLocation(FVector NewHandLocation);
-	void SetRightHandLocation(float AttackAimPitchDiff, float AttackAimYawDiff, bool CheckSwordMovable = true);
+	void SetRightHandLocation(FVector2f AttackAimDiff, bool CheckSwordMovable = true);
 
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
@@ -97,7 +94,8 @@ protected:
 
 	void SetHealthPoint(float Value) { HealthPoint = Value; }
 	void AdjustHealthPoint(float Value) { SetHealthPoint(FMath::Clamp(HealthPoint + Value, 0.0f, MaxHealthPoint)); }
-	void ApplyParried();
+	UFUNCTION()
+	void ApplyParried(FVector2f ParryAimDiff, float CurrMaxParryDuration);
 
 public:
 	// Sets default values for this character's properties
