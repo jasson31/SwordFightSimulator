@@ -51,6 +51,7 @@ protected:
 	ASword* MySword;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Player Character")
 	bool bIsAttacking = false;
+	FTimerHandle EndAttackTimerHandle;
 
 	FVector2f CurrAttackAim;
 	FVector2f AttackAimCenter;
@@ -96,6 +97,8 @@ protected:
 	void AdjustHealthPoint(float Value) { SetHealthPoint(FMath::Clamp(HealthPoint + Value, 0.0f, MaxHealthPoint)); }
 	UFUNCTION()
 	void ApplyParried(FVector2f ParryAimDiff, float CurrMaxParryDuration);
+	UFUNCTION()
+	void EndAttack();
 
 public:
 	// Sets default values for this character's properties

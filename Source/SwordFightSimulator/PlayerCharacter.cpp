@@ -165,7 +165,16 @@ void APlayerCharacter::StopAttackMode(const FInputActionValue& Value)
 			SubSystem->RemoveMappingContext(AttackMappingContext);
 		}
 	}
-	ServerSetAttackMode(false);
+	GetWorldTimerManager().SetTimer(EndAttackTimerHandle, this, &APlayerCharacter::EndAttack, 0.01f, true, 0.0f);
+}
+
+void APlayerCharacter::EndAttack()
+{
+	if (!bIsParried)
+	{
+		ServerSetAttackMode(false);
+		GetWorldTimerManager().ClearTimer(EndAttackTimerHandle);
+	}
 }
 
 // Called to bind functionality to input
