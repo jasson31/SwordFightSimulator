@@ -14,26 +14,31 @@ ASword::ASword()
 	SwordMesh = CreateDefaultSubobject<UStaticMeshComponent>("Mesh Component");
 	RootComponent = SwordMesh;
 
-	//CapsuleComponent = CreateDefaultSubobject<UCapsuleComponent>("Capsule Component");
-	//CapsuleComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepWorldTransform);
-
 	bReplicates = true;
 }
 
 bool ASword::CheckSwordBlocked(FVector CheckDirection)
 {
 	FHitResult HitResult;
-	FVector Start = GetActorLocation() + GetActorUpVector() * 54.0f;
-	FVector End = Start + CheckDirection * 1.0f;
-	float Height = 47.0f;
-	float Radius = 3.0f;
-	FCollisionQueryParams QueryParams;
-	QueryParams.AddIgnoredActor(this);
-	QueryParams.AddIgnoredActor(GetOwner());
-	bool IsHit = GetWorld()->SweepSingleByChannel(HitResult, Start, End, GetActorRotation().Quaternion(), ECollisionChannel::ECC_GameTraceChannel3, FCollisionShape::MakeCapsule(Radius, Height), QueryParams);
-	DrawDebugCapsule(GetWorld(), Start, Height, Radius, GetActorRotation().Quaternion(), FColor::Yellow, false, 0.0f);
-	DrawDebugCapsule(GetWorld(), End, Height, Radius, GetActorRotation().Quaternion(), FColor::Red, false, 0.0f);
 
+	FVector TopBound = SwordMesh->GetSocketLocation("Top Bound");
+	FVector BottomBackRightBound = SwordMesh->GetSocketLocation("Bottom Right Bound");
+	FVector BottomFrontLeftBound = SwordMesh->GetSocketLocation("Bottom Left Bound");
+	FVector BottomCenterBound = (BottomBackRightBound + BottomFrontLeftBound) / 2;
+
+	FVector Start = (TopBound + BottomCenterBound) / 2;
+	FVector End = Start + CheckDirection * 1.0f;
+	float HalfWidth = FMath::Abs(BottomBackRightBound.X - BottomFrontLeftBound.X) / 2;
+	float HalfDepth = FMath::Abs(BottomBackRightBound.Y - BottomFrontLeftBound.Y) / 2;
+	float HalfHeight = FVector::Dist(TopBound, BottomCenterBound) / 2;
+	FVector HalfExtent(HalfWidth, HalfDepth, HalfHeight);
+
+	TArray<AActor*> IgnoredActors = { this, GetOwner() };
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActors(IgnoredActors);
+	bool IsHit = GetWorld()->SweepSingleByChannel(HitResult, Start, End, GetActorRotation().Quaternion(), ECollisionChannel::ECC_GameTraceChannel3, FCollisionShape::MakeBox(HalfExtent), QueryParams);
+	//DrawDebugBox(GetWorld(), Start, HalfExtent, GetActorRotation().Quaternion(), FColor::Yellow, false, 0.0f);
+	//DrawDebugBox(GetWorld(), End, HalfExtent, GetActorRotation().Quaternion(), FColor::Red, false, 0.0f);
 	return IsHit;
 }
 
@@ -46,7 +51,6 @@ void ASword::BeginPlay()
 	{
 		SwordMesh->OnComponentBeginOverlap.AddDynamic(this, &ASword::OnOverlapBegin);
 		SwordMesh->OnComponentEndOverlap.AddDynamic(this, &ASword::OnOverlapEnd);
-		//SwordMesh->OnComponentHit.AddDynamic(this, &ASword::OnHit);
 	}
 }
 
@@ -73,15 +77,3 @@ void ASword::OnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* Othe
 		UE_LOG(LogTemp, Warning, TEXT("%s hit end %s"), *this->GetActorNameOrLabel(), *OtherActor->GetActorNameOrLabel());
 	}
 }
-
-//void ASword::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
-//{
-//	if (Owner != OtherActor)
-//	{
-//		if (IDamagable* HitDamagable = Cast<IDamagable>(OtherActor))
-//		{
-//			UE_LOG(LogTemp, Warning, TEXT("%s hit %s"), *this->GetActorNameOrLabel(), *OtherActor->GetActorNameOrLabel());
-//			Cast<APlayerCharacter>(OtherActor)->ServerProcessDamage(OtherActor, Damage);
-//		}
-//	}
-//}

@@ -14,11 +14,10 @@ class SWORDFIGHTSIMULATOR_API ASword : public AActor
 
 protected:
 
-	//UPROPERTY(EditDefaultsOnly, Category = "Sword")
-	//UCapsuleComponent* CapsuleComponent;
 	UPROPERTY(EditDefaultsOnly, Category = "Sword")
 	UStaticMeshComponent* SwordMesh;
-
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Sword")
 	float Damage = 10.0f;
 
 public:
@@ -33,6 +32,4 @@ protected:
 	void OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 	UFUNCTION()
 	void OnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
-	//UFUNCTION()
-	//void OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 };
