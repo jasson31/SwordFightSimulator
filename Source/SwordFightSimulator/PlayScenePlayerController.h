@@ -19,10 +19,12 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Play Scene Player Controller")
 	TSubclassOf<APlayerCharacter> PlayerCharacterBlueprint;
 
-protected:
-	virtual void BeginPlay() override;
-
+public:
 	UFUNCTION(Server, Reliable)
 	void ServerSpawnPlayer();
+	FString GetServerIPAddress();
+
+protected:
+	virtual void BeginPlay() override;
 
 };

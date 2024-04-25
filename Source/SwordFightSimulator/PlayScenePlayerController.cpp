@@ -5,12 +5,20 @@
 #include "PlaySceneGameMode.h"
 #include <Kismet/GameplayStatics.h>
 
+FString APlayScenePlayerController::GetServerIPAddress()
+{
+	if (NetConnection)
+	{
+		return *NetConnection->URL.Host;
+	}
+	else
+	{
+		return "NetConnection is null";
+	}
+}
+
 void APlayScenePlayerController::BeginPlay()
 {
-	if (IsLocalPlayerController())
-	{
-		ServerSpawnPlayer();
-	}
 }
 
 void APlayScenePlayerController::ServerSpawnPlayer_Implementation()
@@ -25,6 +33,7 @@ void APlayScenePlayerController::ServerSpawnPlayer_Implementation()
 		AActor* PlayerStart = GameMode->GetPlayerStartPosition(this);
 		FTransform PlayerStartTransform = PlayerStart->GetActorTransform();
 		APawn* NewPawn = GetWorld()->SpawnActor<APlayerCharacter>(PlayerCharacterBlueprint, PlayerStartTransform);
-		Possess(NewPawn);
+		this->Possess(NewPawn);
 	}
+	UE_LOG(LogTemp, Warning, TEXT("%s"), *GetServerIPAddress());
 }

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
+#include "HostWaitingWidget.h"
 #include "PlaySceneGameMode.generated.h"
 
 /**
@@ -16,11 +17,15 @@ class SWORDFIGHTSIMULATOR_API APlaySceneGameMode : public AGameModeBase
 
 protected:
 	int32 CurrentPlayerCount = 0;
-
 	TArray<AActor*> PlayerStartTransforms;
+	UPROPERTY(EditDefaultsOnly, Category = "Play Scene Game Mode")
+	TSubclassOf<UHostWaitingWidget> HostWaitingWidgetBlueprint;
+	UPROPERTY()
+	UHostWaitingWidget* HostWaitingWidget;
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void PostLogin(APlayerController* NewPlayer) override;
 
 public:
 
