@@ -14,18 +14,15 @@ class SWORDFIGHTSIMULATOR_API APlaySceneGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
 
-public:
-	short CurrentSpawnPoint;
-
 protected:
-
-	int32 MaxPlayerNumber;
+	int32 CurrentPlayerCount = 0;
 
 	TArray<AActor*> PlayerStartTransforms;
 
 protected:
-	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	virtual AActor* ChoosePlayerStart_Implementation(AController* Player) override;
+public:
+
+	AActor* GetPlayerStartPosition(AController* Player);
 };

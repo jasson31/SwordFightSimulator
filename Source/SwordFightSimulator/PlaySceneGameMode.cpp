@@ -4,13 +4,16 @@
 #include "PlaySceneGameMode.h"
 #include <Kismet/GameplayStatics.h>
 #include <GameFramework/PlayerStart.h>
+#include "Engine.h"
+
 
 void APlaySceneGameMode::BeginPlay()
 {
+	CurrentPlayerCount = 0;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerStart::StaticClass(), PlayerStartTransforms);
 }
 
-AActor* APlaySceneGameMode::ChoosePlayerStart_Implementation(AController* Player)
+AActor* APlaySceneGameMode::GetPlayerStartPosition(AController* Player)
 {
-	return nullptr;
+	return CurrentPlayerCount < PlayerStartTransforms.Num() ? PlayerStartTransforms[CurrentPlayerCount++] : nullptr;
 }
