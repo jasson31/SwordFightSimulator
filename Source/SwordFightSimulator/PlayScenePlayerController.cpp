@@ -5,20 +5,22 @@
 #include "PlaySceneGameMode.h"
 #include <Kismet/GameplayStatics.h>
 
-FString APlayScenePlayerController::GetServerIPAddress()
+void APlayScenePlayerController::CreateHostWaitingWidget()
 {
-	if (NetConnection)
+	if (UKismetSystemLibrary::IsServer(GetWorld()) && IsLocalPlayerController())
 	{
-		return *NetConnection->URL.Host;
-	}
-	else
-	{
-		return "NetConnection is null";
+		HostWaitingWidget = Cast<UHostWaitingWidget>(CreateWidget(this, HostWaitingWidgetBlueprint));
+		HostWaitingWidget->AddToViewport();
 	}
 }
 
-void APlayScenePlayerController::BeginPlay()
+void APlayScenePlayerController::RemoveHostWaitingWidget() const
 {
+	if (IsLocalPlayerController())
+	{
+		HostWaitingWidget->RemoveFromParent();
+		HostWaitingWidget->Destruct();
+	}
 }
 
 void APlayScenePlayerController::ServerSpawnPlayer_Implementation()
@@ -35,5 +37,4 @@ void APlayScenePlayerController::ServerSpawnPlayer_Implementation()
 		APawn* NewPawn = GetWorld()->SpawnActor<APlayerCharacter>(PlayerCharacterBlueprint, PlayerStartTransform);
 		this->Possess(NewPawn);
 	}
-	UE_LOG(LogTemp, Warning, TEXT("%s"), *GetServerIPAddress());
 }

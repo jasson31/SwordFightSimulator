@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 #include "PlayerCharacter.h"
+#include "HostWaitingWidget.h"
 #include "PlayScenePlayerController.generated.h"
 
 /**
@@ -19,12 +20,14 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Play Scene Player Controller")
 	TSubclassOf<APlayerCharacter> PlayerCharacterBlueprint;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Play Scene Game Mode")
+	TSubclassOf<UUserWidget> HostWaitingWidgetBlueprint;
+	UPROPERTY()
+	UHostWaitingWidget* HostWaitingWidget;
+
 public:
 	UFUNCTION(Server, Reliable)
 	void ServerSpawnPlayer();
-	FString GetServerIPAddress();
-
-protected:
-	virtual void BeginPlay() override;
-
+	void CreateHostWaitingWidget();
+	void RemoveHostWaitingWidget() const;
 };

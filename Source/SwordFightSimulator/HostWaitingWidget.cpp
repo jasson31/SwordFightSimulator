@@ -2,8 +2,17 @@
 
 
 #include "HostWaitingWidget.h"
+#include <SocketSubsystem.h>
 
 FString UHostWaitingWidget::GetServerIPAddress()
 {
-	return FString();
+    FString IPAddress = TEXT("Unknown");
+
+    ISocketSubsystem* SocketSubsystem = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
+    if (SocketSubsystem)
+    {
+        bool bCanBindAll;
+        IPAddress = SocketSubsystem->GetLocalHostAddr(*GLog, bCanBindAll)->ToString(false);
+    }
+    return IPAddress;
 }

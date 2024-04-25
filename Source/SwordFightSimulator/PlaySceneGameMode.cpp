@@ -15,19 +15,23 @@ void APlaySceneGameMode::BeginPlay()
 
 void APlaySceneGameMode::PostLogin(APlayerController* NewPlayer)
 {
-	if (this->GetNumPlayers() == 2)
+	switch (this->GetNumPlayers())
 	{
+	case 1:
+		if (APlayScenePlayerController* PlayerController = Cast< APlayScenePlayerController>(NewPlayer))
+		{
+			PlayerController->CreateHostWaitingWidget();
+		}
+		break;
+	case 2:
 		for (APlayScenePlayerController* Controller : TActorRange<APlayScenePlayerController>(GetWorld()))
 		{
 			Controller->ServerSpawnPlayer();
+			Controller->RemoveHostWaitingWidget();
 		}
-		//HostWaitingWidget->RemoveFromParent();
-		//HostWaitingWidget->Destruct();
-	}
-	else
-	{
-		//HostWaitingWidget = CreateWidget<UHostWaitingWidget>(this, HostWaitingWidgetBlueprint);
-		//HostWaitingWidget->AddToViewport();
+		break;
+	default:
+		break;
 	}
 }
 
