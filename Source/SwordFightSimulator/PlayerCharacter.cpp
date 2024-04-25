@@ -1,8 +1,9 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "PlayerCharacter.h"
 #include <Kismet/KismetMathLibrary.h>
+#include <Kismet/GameplayStatics.h>
+#include <Engine.h>
 
 #define ROLE_TO_STRING(Value) FindObject<UEnum>(ANY_PACKAGE, TEXT("ENetRole"), true)->GetNameStringByIndex((int32)Value)
 
@@ -10,7 +11,7 @@
 APlayerCharacter::APlayerCharacter()
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	//CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	//CameraBoom->SetupAttachment(RootComponent);
@@ -46,6 +47,12 @@ void APlayerCharacter::BeginPlay()
 
 		SetHealthPoint(MaxHealthPoint);
 	}
+}
+
+void APlayerCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	LookOpponent();
 }
 
 void APlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty >& OutLifetimeProps) const
@@ -99,16 +106,21 @@ void APlayerCharacter::ApplyParried(FVector2f ParryAimDiff, float CurrMaxParryDu
 
 void APlayerCharacter::SetRightHandLocation(FVector2f AttackAimDiff, bool CheckSwordMovable)
 {
-	float NextAimPitch = FMath::Clamp(CurrAttackAim.X + AttackAimDiff.X, AttackAimCenter.X + AttackPitchClamp.X, AttackAimCenter.X + AttackPitchClamp.Y);
-	float NextAimYaw = FMath::Clamp(CurrAttackAim.Y + AttackAimDiff.Y, AttackAimCenter.Y + AttackYawClamp.X, AttackAimCenter.Y + AttackYawClamp.Y);
+	float NextAimPitch = FMath::Clamp(CurrAttackAim.X + AttackAimDiff.X, AttackPitchClamp.X, AttackPitchClamp.Y);
+	float NextAimYaw = FMath::Clamp(CurrAttackAim.Y + AttackAimDiff.Y, AttackYawClamp.X, AttackYawClamp.Y);
 
-	FVector AimVector = FRotator(NextAimPitch, NextAimYaw, 0.0f).Vector();
-	FVector AimLocation = UKismetMathLibrary::ComposeTransforms(GetMesh()->GetSocketTransform("CameraSocket", ERelativeTransformSpace::RTS_World), FTransform(AimVector * 200.0f)).GetLocation();
+	FTransform HeadSocketTransform = GetMesh()->GetSocketTransform("CameraSocket", ERelativeTransformSpace::RTS_Component);
 
-	FVector PrevAimVector = FRotator(CurrAttackAim.X, CurrAttackAim.Y, 0.0f).Vector();
-	FVector PrevAimLocation = UKismetMathLibrary::ComposeTransforms(GetMesh()->GetSocketTransform("CameraSocket", ERelativeTransformSpace::RTS_World), FTransform(PrevAimVector * 200.0f)).GetLocation();
+	FVector AimVector = FRotator(NextAimPitch, NextAimYaw + 90.0f, 0.0f).Vector();
+	FVector AimLocation = UKismetMathLibrary::ComposeTransforms(HeadSocketTransform, FTransform(AimVector * 200.0f)).GetLocation();
 
-	FVector TempRightHandLocation = GetMesh()->GetComponentTransform().InverseTransformPosition(AimLocation);
+	FVector PrevAimVector = FRotator(CurrAttackAim.X, CurrAttackAim.Y + 90.0f, 0.0f).Vector();
+	FVector PrevAimLocation = UKismetMathLibrary::ComposeTransforms(HeadSocketTransform, FTransform(PrevAimVector * 200.0f)).GetLocation();
+
+	//FVector TempRightHandLocation = GetMesh()->GetSocketTransform("CameraSocket", ERelativeTransformSpace::RTS_World).InverseTransformPosition(AimLocation);
+	FVector TempRightHandLocation = AimLocation;
+
+	DrawDebugSphere(GetWorld(), TempRightHandLocation, 20.0f, 20, FColor::Red, false, 0.0f);
 
 	FVector AimMoveDirection = AimLocation - PrevAimLocation;
 	AimMoveDirection.Normalize();
@@ -140,8 +152,7 @@ void APlayerCharacter::StartAttackMode(const FInputActionValue& Value)
 	}
 	ServerSetAttackMode(true);
 
-	FRotator CurrentHeadRotator = GetMesh()->GetSocketTransform("CameraSocket", ERelativeTransformSpace::RTS_World).Rotator();
-	CurrAttackAim = AttackAimCenter = FVector2f(CurrentHeadRotator.Pitch, CurrentHeadRotator.Yaw);
+	CurrAttackAim = FVector2f(0.0f, 0.0f);
 	SetRightHandLocation(FVector2f(0.0f, 0.0f));
 }
 
@@ -153,6 +164,7 @@ void APlayerCharacter::Attack(const FInputActionValue& Value)
 		FVector2f AttackAimDiff(FMath::Clamp(InputValue.Y, AttackInputPitchDiffClamp.X, AttackInputPitchDiffClamp.Y), FMath::Clamp(InputValue.X, AttackInputYawDiffClamp.X, AttackInputYawDiffClamp.Y));
 		SetRightHandLocation(AttackAimDiff);
 	}
+	LookOpponent();
 }
 
 void APlayerCharacter::StopAttackMode(const FInputActionValue& Value)
@@ -174,6 +186,29 @@ void APlayerCharacter::EndAttack()
 	{
 		ServerSetAttackMode(false);
 		GetWorldTimerManager().ClearTimer(EndAttackTimerHandle);
+	}
+}
+
+void APlayerCharacter::LookOpponent()
+{
+	if (EnemyPlayerCharacter != nullptr)
+	{
+		FRotator LookAtEnemyRotator = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), EnemyPlayerCharacter->GetActorLocation());
+		if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
+		{
+			PlayerController->ClientSetRotation(LookAtEnemyRotator);
+		}
+	}
+	else
+	{
+		for (APlayerCharacter* PlayerCharacter : TActorRange<APlayerCharacter>(GetWorld()))
+		{
+			if (PlayerCharacter != this)
+			{
+				EnemyPlayerCharacter = PlayerCharacter;
+				break;
+			}
+		}
 	}
 }
 

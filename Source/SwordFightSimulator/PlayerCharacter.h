@@ -54,7 +54,6 @@ protected:
 	FTimerHandle EndAttackTimerHandle;
 
 	FVector2f CurrAttackAim;
-	FVector2f AttackAimCenter;
 	UPROPERTY(EditDefaultsOnly, Category = "Player Character")
 	FVector2f AttackInputYawDiffClamp = FVector2f(-4.0f, 4.0f);
 	UPROPERTY(EditDefaultsOnly, Category = "Player Character")
@@ -76,10 +75,12 @@ protected:
 	float ParryApplyDelay = 0.01f;
 	UPROPERTY(EditDefaultsOnly, Category = "Player Character")
 	float ParryStrengthRatio = 0.3f;
+	APlayerCharacter* EnemyPlayerCharacter;
 
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaTime) override;
 
 	UFUNCTION(Server, Reliable)
 	void ServerSetAttackMode(bool AttackMode);
@@ -99,6 +100,7 @@ protected:
 	void ApplyParried(FVector2f ParryAimDiff, float CurrMaxParryDuration);
 	UFUNCTION()
 	void EndAttack();
+	void LookOpponent();
 
 public:
 	// Sets default values for this character's properties
