@@ -22,5 +22,5 @@ class SWORDFIGHTSIMULATOR_API IDamagable
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
-	virtual void OnDamaged(float Damage) = 0;
+	virtual void OnDamaged(AActor* Attacker, float Damage) = 0;
 };

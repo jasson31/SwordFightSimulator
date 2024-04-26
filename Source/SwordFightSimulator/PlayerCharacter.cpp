@@ -4,6 +4,7 @@
 #include <Kismet/KismetMathLibrary.h>
 #include <Kismet/GameplayStatics.h>
 #include <Engine.h>
+#include "PlaySceneGameMode.h"
 
 #define ROLE_TO_STRING(Value) FindObject<UEnum>(ANY_PACKAGE, TEXT("ENetRole"), true)->GetNameStringByIndex((int32)Value)
 
@@ -14,7 +15,7 @@ APlayerCharacter::APlayerCharacter()
 	PrimaryActorTick.bCanEverTick = true;
 
 	//CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
-	//CameraBoom->SetupAttachment(RootComponent);
+	//CameraBoom->SetupAttachment(GetMesh(), "CameraSocket");
 	//CameraBoom->TargetArmLength = 300.0f;
 	//CameraBoom->bUsePawnControlRotation = true;
 
@@ -52,7 +53,10 @@ void APlayerCharacter::BeginPlay()
 void APlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	LookOpponent();
+	if (bIsAttacking)
+	{
+		LookOpponent(DeltaTime);
+	}
 }
 
 void APlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty >& OutLifetimeProps) const
@@ -120,8 +124,6 @@ void APlayerCharacter::SetRightHandLocation(FVector2f AttackAimDiff, bool CheckS
 	//FVector TempRightHandLocation = GetMesh()->GetSocketTransform("CameraSocket", ERelativeTransformSpace::RTS_World).InverseTransformPosition(AimLocation);
 	FVector TempRightHandLocation = AimLocation;
 
-	DrawDebugSphere(GetWorld(), TempRightHandLocation, 20.0f, 20, FColor::Red, false, 0.0f);
-
 	FVector AimMoveDirection = AimLocation - PrevAimLocation;
 	AimMoveDirection.Normalize();
 	if (!(CheckSwordMovable && MySword->CheckSwordBlocked(AimMoveDirection)))
@@ -154,6 +156,7 @@ void APlayerCharacter::StartAttackMode(const FInputActionValue& Value)
 
 	CurrAttackAim = FVector2f(0.0f, 0.0f);
 	SetRightHandLocation(FVector2f(0.0f, 0.0f));
+	LookInterpolationRatio = 0.0f;
 }
 
 void APlayerCharacter::Attack(const FInputActionValue& Value)
@@ -164,7 +167,6 @@ void APlayerCharacter::Attack(const FInputActionValue& Value)
 		FVector2f AttackAimDiff(FMath::Clamp(InputValue.Y, AttackInputPitchDiffClamp.X, AttackInputPitchDiffClamp.Y), FMath::Clamp(InputValue.X, AttackInputYawDiffClamp.X, AttackInputYawDiffClamp.Y));
 		SetRightHandLocation(AttackAimDiff);
 	}
-	LookOpponent();
 }
 
 void APlayerCharacter::StopAttackMode(const FInputActionValue& Value)
@@ -189,14 +191,19 @@ void APlayerCharacter::EndAttack()
 	}
 }
 
-void APlayerCharacter::LookOpponent()
+void APlayerCharacter::LookOpponent(float DeltaTime)
 {
 	if (EnemyPlayerCharacter != nullptr)
 	{
 		FRotator LookAtEnemyRotator = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), EnemyPlayerCharacter->GetActorLocation());
 		if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
 		{
-			PlayerController->ClientSetRotation(LookAtEnemyRotator);
+			LookAtEnemyRotator = UKismetMathLibrary::RLerp(PlayerController->GetControlRotation(), LookAtEnemyRotator, LookInterpolationRatio, true);
+			PlayerController->SetControlRotation(LookAtEnemyRotator);
+			if (LookInterpolationRatio < 1.0f)
+			{
+				LookInterpolationRatio += DeltaTime * LookInterpolationSpeed;
+			}
 		}
 	}
 	else
@@ -209,6 +216,14 @@ void APlayerCharacter::LookOpponent()
 				break;
 			}
 		}
+	}
+}
+
+void APlayerCharacter::Death()
+{
+	if (APlaySceneGameMode* GameMode = Cast<APlaySceneGameMode>(UGameplayStatics::GetGameMode(GetWorld())))
+	{
+		GameMode->FinishGame(nullptr, nullptr);
 	}
 }
 
@@ -238,10 +253,14 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	}
 }
 
-void APlayerCharacter::OnDamaged(float Damage)
+void APlayerCharacter::OnDamaged(AActor* Attacker, float Damage)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Lost Health"));
+	UE_LOG(LogTemp, Warning, TEXT("Lost Health, %s attacked %s"), *Attacker->GetActorNameOrLabel(), *this->GetActorNameOrLabel());
 	AdjustHealthPoint(-Damage);
+	if (HealthPoint <= 0.0f)
+	{
+		Death();
+	}
 }
 
 FVector APlayerCharacter::GetLeftHandLocation()
@@ -264,7 +283,7 @@ void APlayerCharacter::ServerSetRightHandLocation_Implementation(FVector NewHand
 	RightHandLocation = NewHandLocation;
 }
 
-void APlayerCharacter::ServerProcessDamage_Implementation(AActor* Actor, float Damage)
+void APlayerCharacter::ServerProcessDamage_Implementation(AActor* Attacker, float Damage)
 {
-	Cast<IDamagable>(Actor)->OnDamaged(Damage);
+	OnDamaged(Attacker, Damage);
 }

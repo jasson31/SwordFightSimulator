@@ -23,6 +23,6 @@ protected:
 	virtual void PostLogin(APlayerController* NewPlayer) override;
 
 public:
-
 	AActor* GetPlayerStartPosition(AController* Player);
+	void FinishGame(AController* Winner, AController* Loser);
 };

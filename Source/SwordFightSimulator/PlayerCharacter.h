@@ -32,8 +32,8 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = Input)
 	UInputAction* AttackAction;
 
-	/*UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = PlayerCamera, meta = (AllowPrivateAccess = "true"))
-	USpringArmComponent* CameraBoom;*/
+	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = PlayerCamera, meta = (AllowPrivateAccess = "true"))
+	//USpringArmComponent* CameraBoom;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Camera")
 	UCameraComponent* Camera;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
@@ -76,6 +76,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Player Character")
 	float ParryStrengthRatio = 0.3f;
 	APlayerCharacter* EnemyPlayerCharacter;
+	float LookInterpolationRatio = 0.0f;
+	UPROPERTY(EditDefaultsOnly, Category = "Player Character")
+	float LookInterpolationSpeed = 5.0f;
 
 protected:
 	// Called when the game starts or when spawned
@@ -90,17 +93,19 @@ protected:
 
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
+
 	void StartAttackMode(const FInputActionValue& Value);
 	void StopAttackMode(const FInputActionValue& Value);
 	void Attack(const FInputActionValue& Value);
+	UFUNCTION()
+	void EndAttack();
+	UFUNCTION()
+	void ApplyParried(FVector2f ParryAimDiff, float CurrMaxParryDuration);
+	void LookOpponent(float DeltaTime);
 
 	void SetHealthPoint(float Value) { HealthPoint = Value; }
 	void AdjustHealthPoint(float Value) { SetHealthPoint(FMath::Clamp(HealthPoint + Value, 0.0f, MaxHealthPoint)); }
-	UFUNCTION()
-	void ApplyParried(FVector2f ParryAimDiff, float CurrMaxParryDuration);
-	UFUNCTION()
-	void EndAttack();
-	void LookOpponent();
+	void Death();
 
 public:
 	// Sets default values for this character's properties
@@ -109,7 +114,7 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	virtual void OnDamaged(float Damage) override;
+	virtual void OnDamaged(AActor* Attacker, float Damage) override;
 
 	UFUNCTION(BlueprintCallable)
 	void GetHealthInformation(float& OutCurrentHealthPoint, float& OutMaxHealthPoint) { OutCurrentHealthPoint = HealthPoint; OutMaxHealthPoint = MaxHealthPoint; }

@@ -39,3 +39,8 @@ AActor* APlaySceneGameMode::GetPlayerStartPosition(AController* Player)
 {
 	return CurrentPlayerCount < PlayerStartTransforms.Num() ? PlayerStartTransforms[CurrentPlayerCount++] : nullptr;
 }
+
+void APlaySceneGameMode::FinishGame(AController* Winner, AController* Loser)
+{
+
+}

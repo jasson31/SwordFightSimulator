@@ -50,7 +50,6 @@ void ASword::BeginPlay()
 	if (HasAuthority())
 	{
 		SwordMesh->OnComponentBeginOverlap.AddDynamic(this, &ASword::OnOverlapBegin);
-		SwordMesh->OnComponentEndOverlap.AddDynamic(this, &ASword::OnOverlapEnd);
 	}
 }
 
@@ -63,17 +62,8 @@ void ASword::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* Ot
 			APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(Owner);
 			if (PlayerCharacter == nullptr || PlayerCharacter->GetbIsAttacking())
 			{
-				Cast<APlayerCharacter>(OtherActor)->ServerProcessDamage(OtherActor, Damage);
+				Cast<APlayerCharacter>(OtherActor)->ServerProcessDamage(PlayerCharacter, Damage);
 			}
 		}
-	}
-}
-
-void ASword::OnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-	IDamagable* HitDamagable = Cast<IDamagable>(OtherActor);
-	if (HitDamagable != nullptr && Owner != OtherActor)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("%s hit end %s"), *this->GetActorNameOrLabel(), *OtherActor->GetActorNameOrLabel());
 	}
 }
