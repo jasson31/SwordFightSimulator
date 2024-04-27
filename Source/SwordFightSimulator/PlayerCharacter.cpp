@@ -5,6 +5,7 @@
 #include <Kismet/GameplayStatics.h>
 #include <Engine.h>
 #include "PlaySceneGameMode.h"
+#include "PlayScenePlayerController.h"
 
 #define ROLE_TO_STRING(Value) FindObject<UEnum>(ANY_PACKAGE, TEXT("ENetRole"), true)->GetNameStringByIndex((int32)Value)
 
@@ -117,13 +118,10 @@ void APlayerCharacter::SetRightHandLocation(FVector2f AttackAimDiff, bool CheckS
 
 	FVector AimVector = FRotator(NextAimPitch, NextAimYaw + 90.0f, 0.0f).Vector();
 	FVector AimLocation = UKismetMathLibrary::ComposeTransforms(HeadSocketTransform, FTransform(AimVector * 200.0f)).GetLocation();
-
 	FVector PrevAimVector = FRotator(CurrAttackAim.X, CurrAttackAim.Y + 90.0f, 0.0f).Vector();
 	FVector PrevAimLocation = UKismetMathLibrary::ComposeTransforms(HeadSocketTransform, FTransform(PrevAimVector * 200.0f)).GetLocation();
 
-	//FVector TempRightHandLocation = GetMesh()->GetSocketTransform("CameraSocket", ERelativeTransformSpace::RTS_World).InverseTransformPosition(AimLocation);
 	FVector TempRightHandLocation = AimLocation;
-
 	FVector AimMoveDirection = AimLocation - PrevAimLocation;
 	AimMoveDirection.Normalize();
 	if (!(CheckSwordMovable && MySword->CheckSwordBlocked(AimMoveDirection)))
@@ -219,11 +217,18 @@ void APlayerCharacter::LookOpponent(float DeltaTime)
 	}
 }
 
-void APlayerCharacter::Death()
+void APlayerCharacter::Death(AActor* Attacker)
 {
-	if (APlaySceneGameMode* GameMode = Cast<APlaySceneGameMode>(UGameplayStatics::GetGameMode(GetWorld())))
+	if (APlayScenePlayerController* LoserPlayerController = Cast<APlayScenePlayerController>(GetController()))
 	{
-		GameMode->FinishGame(nullptr, nullptr);
+		LoserPlayerController->ServerSetPlayerGameEnd(false);
+	}
+	if (APlayerCharacter* AttackerPlayercharacter = Cast<APlayerCharacter>(Attacker))
+	{
+		if (APlayScenePlayerController* AttackerPlayerController = Cast<APlayScenePlayerController>(AttackerPlayercharacter->GetController()))
+		{
+			AttackerPlayerController->ServerSetPlayerGameEnd(true);
+		}
 	}
 }
 
@@ -255,11 +260,10 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 void APlayerCharacter::OnDamaged(AActor* Attacker, float Damage)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Lost Health, %s attacked %s"), *Attacker->GetActorNameOrLabel(), *this->GetActorNameOrLabel());
 	AdjustHealthPoint(-Damage);
 	if (HealthPoint <= 0.0f)
 	{
-		Death();
+		Death(Attacker);
 	}
 }
 

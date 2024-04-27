@@ -24,5 +24,4 @@ protected:
 
 public:
 	AActor* GetPlayerStartPosition(AController* Player);
-	void FinishGame(AController* Winner, AController* Loser);
 };

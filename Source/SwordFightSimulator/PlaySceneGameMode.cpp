@@ -20,14 +20,14 @@ void APlaySceneGameMode::PostLogin(APlayerController* NewPlayer)
 	case 1:
 		if (APlayScenePlayerController* PlayerController = Cast< APlayScenePlayerController>(NewPlayer))
 		{
-			PlayerController->CreateHostWaitingWidget();
+			PlayerController->ClientCreateHostWaitingWidget();
 		}
 		break;
 	case 2:
 		for (APlayScenePlayerController* Controller : TActorRange<APlayScenePlayerController>(GetWorld()))
 		{
 			Controller->ServerSpawnPlayer();
-			Controller->RemoveHostWaitingWidget();
+			Controller->ClientRemoveHostWaitingWidget();
 		}
 		break;
 	default:
@@ -38,9 +38,4 @@ void APlaySceneGameMode::PostLogin(APlayerController* NewPlayer)
 AActor* APlaySceneGameMode::GetPlayerStartPosition(AController* Player)
 {
 	return CurrentPlayerCount < PlayerStartTransforms.Num() ? PlayerStartTransforms[CurrentPlayerCount++] : nullptr;
-}
-
-void APlaySceneGameMode::FinishGame(AController* Winner, AController* Loser)
-{
-
 }

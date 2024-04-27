@@ -105,7 +105,7 @@ protected:
 
 	void SetHealthPoint(float Value) { HealthPoint = Value; }
 	void AdjustHealthPoint(float Value) { SetHealthPoint(FMath::Clamp(HealthPoint + Value, 0.0f, MaxHealthPoint)); }
-	void Death();
+	void Death(AActor* Attacker);
 
 public:
 	// Sets default values for this character's properties

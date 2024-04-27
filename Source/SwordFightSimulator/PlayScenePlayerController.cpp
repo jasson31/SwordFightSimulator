@@ -5,22 +5,40 @@
 #include "PlaySceneGameMode.h"
 #include <Kismet/GameplayStatics.h>
 
-void APlayScenePlayerController::CreateHostWaitingWidget()
+
+void APlayScenePlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty >& OutLifetimeProps) const
 {
-	if (UKismetSystemLibrary::IsServer(GetWorld()) && IsLocalPlayerController())
-	{
-		HostWaitingWidget = Cast<UHostWaitingWidget>(CreateWidget(this, HostWaitingWidgetBlueprint));
-		HostWaitingWidget->AddToViewport();
-	}
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(APlayScenePlayerController, bHasPlayerWon);
 }
 
-void APlayScenePlayerController::RemoveHostWaitingWidget() const
+void APlayScenePlayerController::ClientCreateHostWaitingWidget_Implementation()
 {
-	if (IsLocalPlayerController())
+	HostWaitingWidget = Cast<UHostWaitingWidget>(CreateWidget(this, HostWaitingWidgetBlueprint));
+	HostWaitingWidget->AddToViewport();
+}
+
+void APlayScenePlayerController::ClientRemoveHostWaitingWidget_Implementation() const
+{
+	if (HostWaitingWidget != nullptr)
 	{
 		HostWaitingWidget->RemoveFromParent();
 		HostWaitingWidget->Destruct();
 	}
+}
+
+void APlayScenePlayerController::ServerSetPlayerGameEnd_Implementation(bool Value)
+{
+	bHasPlayerWon = Value;
+	ClientCreateGameEndWidget();
+}
+
+void APlayScenePlayerController::ClientCreateGameEndWidget_Implementation()
+{
+	GameEndWidget = Cast<UGameEndWidget>(CreateWidget(this, GameEndWidgetBlueprint));
+	GameEndWidget->AddToViewport();
+	GameEndWidget->SetbHasWon(bHasPlayerWon);
 }
 
 void APlayScenePlayerController::ServerSpawnPlayer_Implementation()

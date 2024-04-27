@@ -6,6 +6,7 @@
 #include "GameFramework/PlayerController.h"
 #include "PlayerCharacter.h"
 #include "HostWaitingWidget.h"
+#include "GameEndWidget.h"
 #include "PlayScenePlayerController.generated.h"
 
 /**
@@ -22,12 +23,23 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Play Scene Game Mode")
 	TSubclassOf<UUserWidget> HostWaitingWidgetBlueprint;
-	UPROPERTY()
 	UHostWaitingWidget* HostWaitingWidget;
+	UPROPERTY(EditDefaultsOnly, Category = "Play Scene Game Mode")
+	TSubclassOf<UUserWidget> GameEndWidgetBlueprint;
+	UGameEndWidget* GameEndWidget;
+	UPROPERTY(Replicated)
+	bool bHasPlayerWon = false;
 
 public:
 	UFUNCTION(Server, Reliable)
 	void ServerSpawnPlayer();
-	void CreateHostWaitingWidget();
-	void RemoveHostWaitingWidget() const;
+	UFUNCTION(Client, Reliable)
+	void ClientCreateHostWaitingWidget();
+	UFUNCTION(Client, Reliable)
+	void ClientRemoveHostWaitingWidget() const;
+	UFUNCTION(Server, Reliable)
+	void ServerSetPlayerGameEnd(bool Value);
+	UFUNCTION(Client, Reliable)
+	void ClientCreateGameEndWidget();
+	FString GetbHasPlayerWonText() const { return bHasPlayerWon ? "You win!" : "You lose..."; }
 };
