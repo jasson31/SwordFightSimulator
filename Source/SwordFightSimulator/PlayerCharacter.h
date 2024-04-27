@@ -51,6 +51,8 @@ protected:
 	ASword* MySword;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Player Character")
 	bool bIsAttacking = false;
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Player Character")
+	bool bIsDead = false;
 	FTimerHandle EndAttackTimerHandle;
 
 	FVector2f CurrAttackAim;
@@ -124,6 +126,8 @@ public:
 	FVector GetLeftHandLocation();
 	UFUNCTION(BlueprintCallable)
 	bool GetbIsAttacking() const { return bIsAttacking; }
+	UFUNCTION(BlueprintCallable)
+	bool GetbIsDead() const { return bIsDead; }
 	UFUNCTION(Server, Reliable)
 	void ServerProcessDamage(AActor* Actor, float Damage);
 };

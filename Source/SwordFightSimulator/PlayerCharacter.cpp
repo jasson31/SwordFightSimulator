@@ -68,6 +68,7 @@ void APlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty >& Ou
 	DOREPLIFETIME(APlayerCharacter, RightHandLocation);
 	DOREPLIFETIME(APlayerCharacter, MySword);
 	DOREPLIFETIME(APlayerCharacter, bIsAttacking);
+	DOREPLIFETIME(APlayerCharacter, bIsDead);
 }
 
 void APlayerCharacter::Move(const FInputActionValue& Value)
@@ -222,6 +223,8 @@ void APlayerCharacter::Death(AActor* Attacker)
 	if (APlayScenePlayerController* LoserPlayerController = Cast<APlayScenePlayerController>(GetController()))
 	{
 		LoserPlayerController->ServerSetPlayerGameEnd(false);
+		bIsDead = true;
+		LoserPlayerController->UnPossess();
 	}
 	if (APlayerCharacter* AttackerPlayercharacter = Cast<APlayerCharacter>(Attacker))
 	{
