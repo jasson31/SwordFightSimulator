@@ -15,23 +15,20 @@ void APlaySceneGameMode::BeginPlay()
 
 void APlaySceneGameMode::PostLogin(APlayerController* NewPlayer)
 {
-	switch (this->GetNumPlayers())
+	if (UGameplayStatics::HasOption(OptionsString, FString("listen")) && this->GetNumPlayers() == 1)
 	{
-	case 1:
 		if (APlayScenePlayerController* PlayerController = Cast< APlayScenePlayerController>(NewPlayer))
 		{
 			PlayerController->ClientCreateHostWaitingWidget();
 		}
-		break;
-	case 2:
+	}
+	else
+	{
 		for (APlayScenePlayerController* Controller : TActorRange<APlayScenePlayerController>(GetWorld()))
 		{
 			Controller->ServerSpawnPlayer();
 			Controller->ClientRemoveHostWaitingWidget();
 		}
-		break;
-	default:
-		break;
 	}
 }
 
