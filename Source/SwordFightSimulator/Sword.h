@@ -13,12 +13,12 @@ class SWORDFIGHTSIMULATOR_API ASword : public AActor
 	GENERATED_BODY()
 
 protected:
-
 	UPROPERTY(EditDefaultsOnly, Category = "Sword")
 	UStaticMeshComponent* SwordMesh;
-	
 	UPROPERTY(EditDefaultsOnly, Category = "Sword")
 	float Damage = 10.0f;
+	UPROPERTY(EditDefaultsOnly, Category = "Sword")
+	float DamageSwingPowerThreshold = 2.5f;
 
 public:
 	// Sets default values for this actor's properties

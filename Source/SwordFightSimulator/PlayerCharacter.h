@@ -81,6 +81,7 @@ protected:
 	float LookInterpolationRatio = 0.0f;
 	UPROPERTY(EditDefaultsOnly, Category = "Player Character")
 	float LookInterpolationSpeed = 5.0f;
+	float SwingPower = 0.0f;
 
 protected:
 	// Called when the game starts or when spawned
@@ -130,4 +131,5 @@ public:
 	bool GetbIsDead() const { return bIsDead; }
 	UFUNCTION(Server, Reliable)
 	void ServerProcessDamage(AActor* Actor, float Damage);
+	float GetSwingPower() const { return SwingPower; }
 };

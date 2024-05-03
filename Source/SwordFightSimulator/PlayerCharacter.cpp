@@ -124,6 +124,7 @@ void APlayerCharacter::SetRightHandLocation(FVector2f AttackAimDiff, bool CheckS
 
 	FVector TempRightHandLocation = AimLocation;
 	FVector AimMoveDirection = AimLocation - PrevAimLocation;
+	SwingPower = AimMoveDirection.Length();
 	AimMoveDirection.Normalize();
 	if (!(CheckSwordMovable && MySword->CheckSwordBlocked(AimMoveDirection)))
 	{
