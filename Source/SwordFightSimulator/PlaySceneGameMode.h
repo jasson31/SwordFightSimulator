@@ -19,7 +19,6 @@ protected:
 	TArray<AActor*> PlayerStartTransforms;
 
 protected:
-	virtual void BeginPlay() override;
 	virtual void PostLogin(APlayerController* NewPlayer) override;
 
 public:

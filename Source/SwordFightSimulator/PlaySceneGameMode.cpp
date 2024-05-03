@@ -7,12 +7,6 @@
 #include "Engine.h"
 #include "PlayScenePlayerController.h"
 
-void APlaySceneGameMode::BeginPlay()
-{
-	CurrentPlayerCount = 0;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerStart::StaticClass(), PlayerStartTransforms);
-}
-
 void APlaySceneGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	if (UGameplayStatics::HasOption(OptionsString, FString("listen")) && this->GetNumPlayers() == 1)
@@ -34,5 +28,9 @@ void APlaySceneGameMode::PostLogin(APlayerController* NewPlayer)
 
 AActor* APlaySceneGameMode::GetPlayerStartPosition(AController* Player)
 {
+	if (PlayerStartTransforms.IsEmpty())
+	{
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerStart::StaticClass(), PlayerStartTransforms);
+	}
 	return CurrentPlayerCount < PlayerStartTransforms.Num() ? PlayerStartTransforms[CurrentPlayerCount++] : nullptr;
 }

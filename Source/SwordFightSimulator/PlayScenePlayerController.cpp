@@ -50,9 +50,15 @@ void APlayScenePlayerController::ServerSpawnPlayer_Implementation()
 	
 	if (APlaySceneGameMode* GameMode = Cast<APlaySceneGameMode>(UGameplayStatics::GetGameMode(GetWorld())))
 	{
-		AActor* PlayerStart = GameMode->GetPlayerStartPosition(this);
-		FTransform PlayerStartTransform = PlayerStart->GetActorTransform();
-		APawn* NewPawn = GetWorld()->SpawnActor<APlayerCharacter>(PlayerCharacterBlueprint, PlayerStartTransform);
-		this->Possess(NewPawn);
+		if (AActor* PlayerStart = GameMode->GetPlayerStartPosition(this))
+		{
+			FTransform PlayerStartTransform = PlayerStart->GetActorTransform();
+			APawn* NewPawn = GetWorld()->SpawnActor<APlayerCharacter>(PlayerCharacterBlueprint, PlayerStartTransform);
+			this->Possess(NewPawn);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("There is no player start position."));
+		}
 	}
 }
