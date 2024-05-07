@@ -40,6 +40,6 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ServerSetPlayerGameEnd(bool Value);
 	UFUNCTION(Client, Reliable)
-	void ClientCreateGameEndWidget();
+	void ClientCreateGameEndWidget(bool HasPlayerWon);
 	FString GetbHasPlayerWonText() const { return bHasPlayerWon ? "You win!" : "You lose..."; }
 };

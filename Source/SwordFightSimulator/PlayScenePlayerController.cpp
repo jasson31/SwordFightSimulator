@@ -6,7 +6,7 @@
 #include <Kismet/GameplayStatics.h>
 
 
-void APlayScenePlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty >& OutLifetimeProps) const
+void APlayScenePlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
@@ -31,14 +31,14 @@ void APlayScenePlayerController::ClientRemoveHostWaitingWidget_Implementation() 
 void APlayScenePlayerController::ServerSetPlayerGameEnd_Implementation(bool Value)
 {
 	bHasPlayerWon = Value;
-	ClientCreateGameEndWidget();
+	ClientCreateGameEndWidget(bHasPlayerWon);
 }
 
-void APlayScenePlayerController::ClientCreateGameEndWidget_Implementation()
+void APlayScenePlayerController::ClientCreateGameEndWidget_Implementation(bool HasPlayerWon)
 {
 	GameEndWidget = Cast<UGameEndWidget>(CreateWidget(this, GameEndWidgetBlueprint));
 	GameEndWidget->AddToViewport();
-	GameEndWidget->SetbHasWon(bHasPlayerWon);
+	GameEndWidget->SetbHasWon(HasPlayerWon);
 }
 
 void APlayScenePlayerController::ServerSpawnPlayer_Implementation()
