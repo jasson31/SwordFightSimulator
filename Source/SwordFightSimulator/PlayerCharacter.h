@@ -45,7 +45,8 @@ protected:
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Player Character")
 	FVector RightHandLocation;
-	FVector PrevRightHandDirection;
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Player Character")
+	float SwingPower = 0.0f;
 	FVector LeftHandLocation;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Player Character")
 	ASword* MySword;
@@ -81,7 +82,6 @@ protected:
 	float LookInterpolationRatio = 0.0f;
 	UPROPERTY(EditDefaultsOnly, Category = "Player Character")
 	float LookInterpolationSpeed = 5.0f;
-	float SwingPower = 0.0f;
 
 protected:
 	// Called when the game starts or when spawned
@@ -91,7 +91,7 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void ServerSetAttackMode(bool AttackMode);
 	UFUNCTION(Server, Reliable)
-	void ServerSetRightHandLocation(FVector NewHandLocation);
+	void ServerSetRightHandLocation(FVector NewHandLocation, float NewSwingPower);
 	void SetRightHandLocation(FVector2f AttackAimDiff, bool CheckSwordMovable = true);
 
 	void Move(const FInputActionValue& Value);

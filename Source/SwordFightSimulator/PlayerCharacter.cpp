@@ -66,6 +66,7 @@ void APlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty >& Ou
 
 	DOREPLIFETIME(APlayerCharacter, HealthPoint);
 	DOREPLIFETIME(APlayerCharacter, RightHandLocation);
+	DOREPLIFETIME(APlayerCharacter, SwingPower);
 	DOREPLIFETIME(APlayerCharacter, MySword);
 	DOREPLIFETIME(APlayerCharacter, bIsAttacking);
 	DOREPLIFETIME(APlayerCharacter, bIsDead);
@@ -124,11 +125,11 @@ void APlayerCharacter::SetRightHandLocation(FVector2f AttackAimDiff, bool CheckS
 
 	FVector TempRightHandLocation = AimLocation;
 	FVector AimMoveDirection = AimLocation - PrevAimLocation;
-	SwingPower = AimMoveDirection.Length();
+	float NewSwingPower = AimMoveDirection.Length();
 	AimMoveDirection.Normalize();
 	if (!(CheckSwordMovable && MySword->CheckSwordBlocked(AimMoveDirection)))
 	{
-		ServerSetRightHandLocation(TempRightHandLocation);
+		ServerSetRightHandLocation(TempRightHandLocation, NewSwingPower);
 		CurrAttackAim = FVector2f(NextAimPitch, NextAimYaw);
 	}
 	else
@@ -286,9 +287,10 @@ void APlayerCharacter::ServerSetAttackMode_Implementation(bool AttackMode)
 	bIsAttacking = AttackMode;
 }
 
-void APlayerCharacter::ServerSetRightHandLocation_Implementation(FVector NewHandLocation)
+void APlayerCharacter::ServerSetRightHandLocation_Implementation(FVector NewHandLocation, float NewSwingPower)
 {
 	RightHandLocation = NewHandLocation;
+	SwingPower = NewSwingPower;
 }
 
 void APlayerCharacter::ServerProcessDamage_Implementation(AActor* Attacker, float Damage)
